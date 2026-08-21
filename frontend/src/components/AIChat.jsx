@@ -11,7 +11,7 @@ const INITIAL_MESSAGES = [
   }
 ];
 
-export default function AIChat({ onNavigate, initialQuery, autoSend, initialGreeting, caseId, clearQuery }) {
+export default function AIChat({ onNavigate, initialQuery, autoSend, initialGreeting, caseId, clearQuery, userPersona }) {
   const customInitialMessage = initialGreeting ? {
     id: 1,
     sender: 'ai',
@@ -79,7 +79,8 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           story: currentInput,
-          history: messages.map(m => ({ role: m.sender, content: m.text }))
+          history: messages.map(m => ({ role: m.sender, content: m.text })),
+          persona: userPersona
         })
       });
       

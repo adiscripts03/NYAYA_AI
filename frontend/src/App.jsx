@@ -1,18 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import { House, FolderOpen, Briefcase, ArrowLeft, Scale, Moon, Sun } from 'lucide-react';
+import { House, FolderOpen, Briefcase, ArrowLeft, Scale, Moon, Sun, LogOut, Gavel, User } from 'lucide-react';
 import Landing from './components/Landing';
 import LoadingScreen from './components/LoadingScreen';
 import Home from './components/Home';
 import AIChat from './components/AIChat';
 import RTIDrafting from './components/RTIDrafting';
+import BailDrafting from './components/BailDrafting';
 import MyCases from './components/MyCases';
 import Resources from './components/Resources';
 
 function App() {
-  const [currentView, setCurrentView] = useState('landing');
+  const [currentView, setCurrentView] = useState(() => {
+    return localStorage.getItem('nyaya_currentView') || 'landing';
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [initialQuery, setInitialQuery] = useState({ text: '', autoSend: false, greeting: '', caseId: null });
+
+  const [userPersona, setUserPersona] = useState(() => {
+    return localStorage.getItem('nyaya_persona') || 'citizen';
+  });
+
+  const togglePersona = () => {
+    const newPersona = userPersona === 'citizen' ? 'lawyer' : 'citizen';
+    setUserPersona(newPersona);
+    localStorage.setItem('nyaya_persona', newPersona);
+  };
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('nyaya_theme') === 'dark';
@@ -32,6 +45,7 @@ function App() {
 
   const handleNavigate = (view, query = '', autoSend = true, greeting = '', caseId = null) => {
     setCurrentView(view);
+    localStorage.setItem('nyaya_currentView', view);
     if (query || greeting || caseId) {
       setInitialQuery({ text: query, autoSend, greeting, caseId });
     }
@@ -44,6 +58,7 @@ function App() {
   const handleLoadingComplete = () => {
     setIsLoading(false);
     setCurrentView('home');
+    localStorage.setItem('nyaya_currentView', 'home');
   };
 
   const renderView = () => {
@@ -55,7 +70,7 @@ function App() {
       case 'landing':
         return <Landing onNavigate={handleEnterSystem} />;
       case 'home':
-        return <Home onNavigate={handleNavigate} />;
+        return <Home onNavigate={handleNavigate} userPersona={userPersona} />;
       case 'chat':
         return <AIChat 
                  onNavigate={handleNavigate} 
@@ -63,10 +78,13 @@ function App() {
                  autoSend={initialQuery.autoSend}
                  initialGreeting={initialQuery.greeting}
                  caseId={initialQuery.caseId}
+                 userPersona={userPersona}
                  clearQuery={() => setInitialQuery({ text: '', autoSend: false, greeting: '', caseId: null })} 
                />;
       case 'rti':
         return <RTIDrafting onNavigate={handleNavigate} caseId={initialQuery.caseId} />;
+      case 'bail':
+        return <BailDrafting onNavigate={handleNavigate} caseId={initialQuery.caseId} />;
       case 'cases':
         return <MyCases onNavigate={handleNavigate} />;
       case 'resources':
@@ -115,18 +133,28 @@ function App() {
           <div className="side-bar-bottom">
             <button 
               className="side-nav-item"
+              onClick={togglePersona}
+              title={userPersona === 'citizen' ? "Switch to Pro Mode" : "Switch to Citizen Mode"}
+              style={userPersona === 'lawyer' ? { color: 'var(--color-primary)' } : {}}
+            >
+              {userPersona === 'citizen' ? <User size={22} /> : <Gavel size={22} />}
+            </button>
+            <button 
+              className="side-nav-item"
               onClick={toggleTheme}
               title="Toggle Dark Mode"
             >
               {isDarkMode ? <Sun size={22} /> : <Moon size={22} />}
             </button>
-
             <button 
               className="side-nav-item back-btn"
-              onClick={() => setCurrentView('landing')}
-              title="Exit App"
+              onClick={() => {
+                setCurrentView('landing');
+                localStorage.setItem('nyaya_currentView', 'landing');
+              }}
+              title="Exit to Landing"
             >
-              <ArrowLeft size={22} />
+              <LogOut size={22} />
             </button>
           </div>
         </aside>

@@ -11,6 +11,10 @@ export const LegalAgentState = Annotation.Root({
     reducer: (x, y) => y ?? x,
     default: () => "",
   }),
+  persona: Annotation<string>({
+    reducer: (x, y) => y ?? x,
+    default: () => "citizen",
+  }),
   history: Annotation<any[]>({
     reducer: (x, y) => y ?? x,
     default: () => [],
@@ -145,10 +149,21 @@ async function kanoonAPINode(state: LegalAgentStateType): Promise<Partial<LegalA
 
 // LegalAdvisorNode: Acts as a RAG agent, translating legalese.
 async function legalAdvisorNode(state: LegalAgentStateType): Promise<Partial<LegalAgentStateType>> {
-  console.log("--- LEGAL ADVISOR NODE ---");
+  console.log(`--- LEGAL ADVISOR NODE (Persona: ${state.persona}) ---`);
   
-  const prompt = ChatPromptTemplate.fromMessages([
-    ["system", `You are a compassionate and knowledgeable Indian Legal Advisor. Your goal is to explain the user's legal situation to them in simple, plain English that a layperson can understand. Avoid complex legalese. 
+  const systemPrompt = state.persona === 'lawyer' 
+    ? `You are an elite Indian Legal Expert assisting a fellow legal professional. Provide precise, highly technical legal analysis. Heavily cite specific statutes (BNS, BNSS, IPC, CrPC, etc.) and case precedents. Maintain a formal, academic, and professional tone.
+    
+IMPORTANT FORMATTING RULES:
+1. Provide your response as a clear, point-wise list.
+2. Clearly separate statutory references from case law.
+
+Use the following context to inform your advice:
+Category: {law_category}
+Key Facts: {key_facts}
+Case Laws & Statutes (from API): {api_results}
+Conversation History: {history}`
+    : `You are a compassionate and knowledgeable Indian Legal Advisor. Your goal is to explain the user's legal situation to them in simple, plain English that a layperson can understand. Avoid complex legalese. 
     
 IMPORTANT FORMATTING RULES:
 1. Do NOT use markdown tables.
@@ -159,9 +174,11 @@ Use the following context to inform your advice:
 Category: {law_category}
 Key Facts: {key_facts}
 Case Laws & Statutes (from API): {api_results}
-Conversation History: {history}
-`],
-    ["human", "Here is my latest story: {user_story}\n\nPlease give me clear and simple legal advice based on this and our history."]
+Conversation History: {history}`;
+
+  const prompt = ChatPromptTemplate.fromMessages([
+    ["system", systemPrompt],
+    ["human", "Here is my latest story: {user_story}\n\nPlease give me clear legal advice based on this and our history."]
   ]);
 
   const chain = prompt.pipe(llm);
@@ -178,13 +195,17 @@ Conversation History: {history}
 
 // ActionPlanNode: Drafts 3-5 immediate steps.
 async function actionPlanNode(state: LegalAgentStateType): Promise<Partial<LegalAgentStateType>> {
-  console.log("--- ACTION PLAN NODE ---");
+  console.log(`--- ACTION PLAN NODE (Persona: ${state.persona}) ---`);
   
-  const prompt = ChatPromptTemplate.fromMessages([
-    ["system", `You are a legal strategist. Based on the provided legal advice and conversation history, create a highly actionable, step-by-step plan for the user. Keep it to 3 to 5 concrete bullet points. Be direct and clear.
+  const systemPrompt = state.persona === 'lawyer'
+    ? `You are an elite legal strategist. Based on the provided legal advice and conversation history, outline a highly professional legal strategy and procedural action plan (e.g., Drafting of SLP, Filing Anticipatory Bail under Sec 438 CrPC, Issuing Sec 138 NI Act notice). Keep it to 3 to 5 concrete bullet points. Maintain absolute legal precision.`
+    : `You are a legal strategist. Based on the provided legal advice and conversation history, create a highly actionable, step-by-step plan for the user. Keep it to 3 to 5 concrete bullet points. Be direct and clear.
 
 IMPORTANT DIRECTIVE: You MUST provide exact URLs to relevant Indian government complaint portals where applicable. 
-CRITICAL: You must format all URLs as clickable markdown links, for example: [National Cyber Crime Portal](https://cybercrime.gov.in). Do not just output raw text URLs. Do not give generic advice like "file a complaint online" without giving the exact, clickable portal link.`],
+CRITICAL: You must format all URLs as clickable markdown links, for example: [National Cyber Crime Portal](https://cybercrime.gov.in). Do not just output raw text URLs. Do not give generic advice like "file a complaint online" without giving the exact, clickable portal link.`;
+
+  const prompt = ChatPromptTemplate.fromMessages([
+    ["system", systemPrompt],
     ["human", "Conversation History:\n{history}\n\nLegal Advice:\n{legal_advice}\n\nWhat should I do next?"]
   ]);
 
