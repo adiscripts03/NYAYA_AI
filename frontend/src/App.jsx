@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
-import { House, FolderOpen, Briefcase, ArrowLeft } from 'lucide-react';
+import { House, FolderOpen, Briefcase, ArrowLeft, Scale, Moon, Sun } from 'lucide-react';
 import Landing from './components/Landing';
 import LoadingScreen from './components/LoadingScreen';
 import Home from './components/Home';
@@ -12,12 +12,28 @@ import Resources from './components/Resources';
 function App() {
   const [currentView, setCurrentView] = useState('landing');
   const [isLoading, setIsLoading] = useState(false);
-  const [initialQuery, setInitialQuery] = useState({ text: '', autoSend: false, greeting: '' });
+  const [initialQuery, setInitialQuery] = useState({ text: '', autoSend: false, greeting: '', caseId: null });
 
-  const handleNavigate = (view, query = '', autoSend = true, greeting = '') => {
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('nyaya_theme') === 'dark';
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.body.classList.add('dark-theme');
+      localStorage.setItem('nyaya_theme', 'dark');
+    } else {
+      document.body.classList.remove('dark-theme');
+      localStorage.setItem('nyaya_theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
+
+  const handleNavigate = (view, query = '', autoSend = true, greeting = '', caseId = null) => {
     setCurrentView(view);
-    if (query || greeting) {
-      setInitialQuery({ text: query, autoSend, greeting });
+    if (query || greeting || caseId) {
+      setInitialQuery({ text: query, autoSend, greeting, caseId });
     }
   };
 
@@ -46,10 +62,11 @@ function App() {
                  initialQuery={initialQuery.text} 
                  autoSend={initialQuery.autoSend}
                  initialGreeting={initialQuery.greeting}
-                 clearQuery={() => setInitialQuery({ text: '', autoSend: false, greeting: '' })} 
+                 caseId={initialQuery.caseId}
+                 clearQuery={() => setInitialQuery({ text: '', autoSend: false, greeting: '', caseId: null })} 
                />;
       case 'rti':
-        return <RTIDrafting onNavigate={handleNavigate} />;
+        return <RTIDrafting onNavigate={handleNavigate} caseId={initialQuery.caseId} />;
       case 'cases':
         return <MyCases onNavigate={handleNavigate} />;
       case 'resources':
@@ -62,50 +79,57 @@ function App() {
   return (
     <div className="app-container">
       {currentView !== 'landing' && !isLoading && (
-        <header className="top-bar">
-          <div className="top-bar-left">
-            {/* Minimal Back Arrow Button */}
-            <button 
-              className="back-arrow-btn"
-              onClick={() => setCurrentView('landing')}
-              title="Go back to landing page"
-              aria-label="Go back to landing page"
-            >
-              <ArrowLeft size={22} />
-            </button>
-
-            <h1 onClick={() => handleNavigate('home')} className="top-bar-brand">
-              Nyaya AI
-            </h1>
+        <aside className="side-bar">
+          <div className="side-bar-top">
+            <div className="side-bar-brand" onClick={() => handleNavigate('home')} title="Nyaya AI">
+              <Scale size={28} />
+            </div>
             
-            {/* Desktop Navigation */}
-            <nav className="desktop-nav">
+            <nav className="side-nav">
               <button 
-                className={`desktop-nav-item ${currentView === 'home' ? 'active' : ''}`}
+                className={`side-nav-item ${currentView === 'home' ? 'active' : ''}`}
                 onClick={() => handleNavigate('home')}
+                title="Home"
               >
-                <House size={18} />
-                <span>Home</span>
+                <House size={22} />
               </button>
               
               <button 
-                className={`desktop-nav-item ${currentView === 'cases' ? 'active' : ''}`}
+                className={`side-nav-item ${currentView === 'cases' ? 'active' : ''}`}
                 onClick={() => handleNavigate('cases')}
+                title="My Cases"
               >
-                <FolderOpen size={18} />
-                <span>My Cases</span>
+                <FolderOpen size={22} />
               </button>
 
               <button 
-                className={`desktop-nav-item ${currentView === 'resources' ? 'active' : ''}`}
+                className={`side-nav-item ${currentView === 'resources' ? 'active' : ''}`}
                 onClick={() => handleNavigate('resources')}
+                title="Resources"
               >
-                <Briefcase size={18} />
-                <span>Resources</span>
+                <Briefcase size={22} />
               </button>
             </nav>
           </div>
-        </header>
+          
+          <div className="side-bar-bottom">
+            <button 
+              className="side-nav-item"
+              onClick={toggleTheme}
+              title="Toggle Dark Mode"
+            >
+              {isDarkMode ? <Sun size={22} /> : <Moon size={22} />}
+            </button>
+
+            <button 
+              className="side-nav-item back-btn"
+              onClick={() => setCurrentView('landing')}
+              title="Exit App"
+            >
+              <ArrowLeft size={22} />
+            </button>
+          </div>
+        </aside>
       )}
 
       <main className={`main-content ${currentView === 'home' ? 'single-screen' : ''}`} style={currentView === 'landing' || isLoading ? { padding: 0 } : {}}>

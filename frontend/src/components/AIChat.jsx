@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, FileText, Info, ArrowLeft } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { saveCase, getCase } from '../utils/storage';
 
 const INITIAL_MESSAGES = [
   {
@@ -10,7 +11,7 @@ const INITIAL_MESSAGES = [
   }
 ];
 
-export default function AIChat({ onNavigate, initialQuery, autoSend, initialGreeting, clearQuery }) {
+export default function AIChat({ onNavigate, initialQuery, autoSend, initialGreeting, caseId, clearQuery }) {
   const customInitialMessage = initialGreeting ? {
     id: 1,
     sender: 'ai',
@@ -19,7 +20,44 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
 
   const [messages, setMessages] = useState([customInitialMessage]);
   const [input, setInput] = useState('');
+  const [currentCaseId, setCurrentCaseId] = useState(caseId || null);
   const hasFiredRef = useRef(false);
+
+  // Load case if caseId is provided
+  useEffect(() => {
+    if (caseId) {
+      const savedCase = getCase(caseId);
+      if (savedCase && savedCase.data) {
+        setMessages(savedCase.data);
+        setCurrentCaseId(caseId);
+        hasFiredRef.current = true; // Prevent initial query firing if loading old case
+      }
+    }
+  }, [caseId]);
+
+  // Save case whenever messages change (if there are user messages)
+  useEffect(() => {
+    const userMessages = messages.filter(m => m.sender === 'user');
+    if (userMessages.length > 0) {
+      const id = currentCaseId || `chat-${Date.now()}`;
+      if (!currentCaseId) setCurrentCaseId(id);
+      
+      const title = userMessages[0].text.substring(0, 40) + '...';
+      const lastMsg = messages[messages.length - 1].text;
+      const snippet = lastMsg.substring(0, 60) + '...';
+      
+      saveCase({
+        id,
+        title,
+        category: 'Legal Advice',
+        status: 'In Draft',
+        statusColor: 'var(--color-warning)',
+        type: 'Chat Session',
+        snippet,
+        data: messages
+      });
+    }
+  }, [messages, currentCaseId]);
 
   const handleSend = async (textOverride) => {
     // If called from an event handler, textOverride might be an event object.

@@ -1,17 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Download, CheckCircle, Copy, ExternalLink, Sparkles, Loader2 } from 'lucide-react';
+import { saveCase, getCase } from '../utils/storage';
 
-export default function RTIDrafting({ onNavigate }) {
+export default function RTIDrafting({ onNavigate, caseId }) {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
     department: '',
-    department: '',
     information: ''
   });
   const [isFinalized, setIsFinalized] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
+  const [currentCaseId, setCurrentCaseId] = useState(caseId || null);
+
+  useEffect(() => {
+    if (caseId) {
+      const savedCase = getCase(caseId);
+      if (savedCase && savedCase.data) {
+        setFormData(savedCase.data.formData);
+        if (savedCase.data.step) setStep(savedCase.data.step);
+        if (savedCase.status === 'Ready to File' || savedCase.status === 'Completed') {
+          setIsFinalized(true);
+        }
+        setCurrentCaseId(caseId);
+      }
+    }
+  }, [caseId]);
+
+  useEffect(() => {
+    // Only save if some data has been entered
+    if (formData.name || formData.department || formData.information) {
+      const id = currentCaseId || `rti-${Date.now()}`;
+      if (!currentCaseId) setCurrentCaseId(id);
+
+      const title = formData.department ? `RTI to ${formData.department}` : 'RTI Application Draft';
+      const snippet = formData.information ? formData.information.substring(0, 60) + '...' : 'Drafting new RTI Application...';
+      const status = isFinalized ? 'Ready to File' : 'In Draft';
+      const statusColor = isFinalized ? 'var(--color-secondary)' : 'var(--color-warning)';
+
+      saveCase({
+        id,
+        title,
+        category: 'RTI Application',
+        status,
+        statusColor,
+        type: 'RTI Form',
+        snippet,
+        data: { formData, step }
+      });
+    }
+  }, [formData, step, isFinalized, currentCaseId]);
 
   const totalSteps = 3;
 

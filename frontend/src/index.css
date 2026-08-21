@@ -154,3 +154,22 @@ input, textarea {
 .input-field::placeholder {
   color: var(--color-text-muted);
 }
+
+body.dark-theme {
+  --color-bg-primary: #121212;
+  --color-bg-secondary: #1E1E1E;
+  --color-bg-tertiary: #2A2A2A;
+  
+  --color-primary: #E38671; /* Lighter terracotta for contrast */
+  --color-primary-light: #F0A595;
+  --color-primary-dark: #C86650;
+  
+  --color-secondary: #4A7A6C; /* Lighter green for visibility */
+  --color-secondary-light: #6B9F8D;
+  --color-secondary-dark: #2F5A4E;
+  
+  --color-text-main: #F5F5F5;
+  --color-text-muted: #A0A0A0;
+  
+  --color-border: #333333;
+}

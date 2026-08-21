@@ -1,44 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FolderOpen, ArrowRight, PlusCircle, Clock } from 'lucide-react';
-
-const INITIAL_CASES = [
-  {
-    id: 'case-1',
-    title: 'Tenant Security Deposit Recovery Notice',
-    category: 'Tenant Rights',
-    date: 'Updated 2 days ago',
-    status: 'In Draft',
-    statusColor: 'var(--color-warning)',
-    type: 'Legal Notice',
-    snippet: 'Draft notice to landlord for non-refund of ₹45,000 security deposit under State Rent Control guidelines.'
-  },
-  {
-    id: 'case-2',
-    title: 'RTI Application for Municipal Drainage Works',
-    category: 'RTI Application',
-    date: 'Updated 5 days ago',
-    status: 'Ready to File',
-    statusColor: 'var(--color-secondary)',
-    type: 'RTI Form',
-    snippet: 'Seeking breakdown of budget allocation & contractor timeline for ward 14 storm water drain.'
-  },
-  {
-    id: 'case-3',
-    title: 'Defective Electronic Appliance Refund Claim',
-    category: 'Consumer Complaints',
-    date: 'Updated 1 week ago',
-    status: 'Completed',
-    statusColor: 'var(--color-success)',
-    type: 'Consumer Notice',
-    snippet: 'Formal complaint notice under Consumer Protection Act 2019.'
-  }
-];
+import { getCases } from '../utils/storage';
 
 export default function MyCases({ onNavigate }) {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [cases, setCases] = useState([]);
 
-  const filteredCases = INITIAL_CASES.filter((item) => {
+  useEffect(() => {
+    setCases(getCases());
+  }, []);
+
+  const formatTimeAgo = (dateStr) => {
+    if (!dateStr) return 'Unknown date';
+    const date = new Date(dateStr);
+    const diffInSeconds = Math.floor((new Date() - date) / 1000);
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `Updated ${Math.floor(diffInSeconds / 60)} mins ago`;
+    if (diffInSeconds < 86400) return `Updated ${Math.floor(diffInSeconds / 3600)} hours ago`;
+    return `Updated ${Math.floor(diffInSeconds / 86400)} days ago`;
+  };
+
+  const filteredCases = cases.filter((item) => {
     const matchesFilter = filter === 'all' || 
       (filter === 'draft' && item.status === 'In Draft') ||
       (filter === 'ready' && item.status === 'Ready to File') ||
@@ -80,7 +63,7 @@ export default function MyCases({ onNavigate }) {
             className={`filter-chip ${filter === 'all' ? 'active' : ''}`}
             onClick={() => setFilter('all')}
           >
-            All ({INITIAL_CASES.length})
+            All ({cases.length})
           </button>
           <button 
             className={`filter-chip ${filter === 'draft' ? 'active' : ''}`}
@@ -118,13 +101,18 @@ export default function MyCases({ onNavigate }) {
             <p className="case-card-snippet">{c.snippet}</p>
 
             <div className="case-card-footer">
-              <span className="case-card-date">{c.date}</span>
-              <button className="btn-secondary case-action-btn" onClick={() => c.category === 'RTI Application' ? onNavigate('rti') : onNavigate('chat')}>
+              <span className="case-card-date">{formatTimeAgo(c.date)}</span>
+              <button className="btn-secondary case-action-btn" onClick={() => c.category === 'RTI Application' ? onNavigate('rti', '', true, '', c.id) : onNavigate('chat', '', true, '', c.id)}>
                 Open <ArrowRight size={16} />
               </button>
             </div>
           </div>
         ))}
+        {filteredCases.length === 0 && (
+          <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--color-text-muted)', gridColumn: '1 / -1' }}>
+            No cases found matching your filters.
+          </div>
+        )}
       </div>
     </div>
   );

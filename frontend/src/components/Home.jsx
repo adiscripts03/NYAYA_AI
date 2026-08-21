@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, ArrowRight, House, Briefcase, FileText, Landmark, Scroll, Clock } from 'lucide-react';
+import { getCases } from '../utils/storage';
 
 const CATEGORIES = [
   { id: 'tenant', title: 'Tenant Rights', icon: House, greeting: "Hello! I specialize in Tenant Rights. Are you dealing with a security deposit issue, an eviction, or a lease dispute?" },
@@ -12,6 +13,24 @@ const CATEGORIES = [
 
 export default function Home({ onNavigate }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [recentCase, setRecentCase] = useState(null);
+
+  useEffect(() => {
+    const cases = getCases();
+    if (cases.length > 0) {
+      setRecentCase(cases[0]);
+    }
+  }, []);
+
+  const formatTimeAgo = (dateStr) => {
+    if (!dateStr) return 'Unknown date';
+    const date = new Date(dateStr);
+    const diffInSeconds = Math.floor((new Date() - date) / 1000);
+    if (diffInSeconds < 60) return 'Saved just now';
+    if (diffInSeconds < 3600) return `Saved ${Math.floor(diffInSeconds / 60)} mins ago`;
+    if (diffInSeconds < 86400) return `Saved ${Math.floor(diffInSeconds / 3600)} hours ago`;
+    return `Saved ${Math.floor(diffInSeconds / 86400)} days ago`;
+  };
 
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
@@ -59,7 +78,7 @@ export default function Home({ onNavigate }) {
               }}
             >
               <div className="home-category-icon">
-                <cat.icon size={22} />
+                <cat.icon size={28} />
               </div>
               <span className="home-category-label">{cat.title}</span>
             </div>
@@ -68,20 +87,22 @@ export default function Home({ onNavigate }) {
       </section>
       
       {/* Recent Activity Card */}
-      <section className="home-recent-card">
-        <div className="recent-left">
-          <div className="recent-badge">
-            <Clock size={14} /> Draft
+      {recentCase && (
+        <section className="home-recent-card">
+          <div className="recent-left">
+            <div className="recent-badge">
+              <Clock size={14} /> {recentCase.status}
+            </div>
+            <div>
+              <div className="recent-title">{recentCase.title}</div>
+              <div className="recent-meta">{recentCase.category} • {formatTimeAgo(recentCase.date)}</div>
+            </div>
           </div>
-          <div>
-            <div className="recent-title">RTI Application for Municipal Road Repair</div>
-            <div className="recent-meta">Ward 14 • Saved 2 days ago</div>
-          </div>
-        </div>
-        <button className="btn-secondary recent-resume-btn" onClick={() => onNavigate('rti')}>
-          Resume Draft <ArrowRight size={14} />
-        </button>
-      </section>
+          <button className="btn-secondary recent-resume-btn" onClick={() => recentCase.category === 'RTI Application' ? onNavigate('rti', '', true, '', recentCase.id) : onNavigate('chat', '', true, '', recentCase.id)}>
+            Resume <ArrowRight size={14} />
+          </button>
+        </section>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 .app-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   min-height: 100vh;
   width: 100%;
   background-color: var(--color-bg-primary);
@@ -11,64 +11,87 @@
   flex: 1;
   padding: var(--spacing-lg) var(--spacing-lg) 100px var(--spacing-lg); /* Padding for bottom nav on mobile */
   overflow-y: auto;
-  width: 100%;
-  max-width: 1200px;
+  height: 100vh;
+  box-sizing: border-box;
   margin: 0 auto;
 }
 
-/* Header / Top Bar */
-.top-bar {
-  display: flex;
+/* Sidebar Navigation (Hidden on mobile) */
+.side-bar {
+  display: none; /* hidden on small screens */
+  flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-md) var(--spacing-lg);
-  background-color: var(--color-bg-primary);
-  border-bottom: 1px solid var(--color-border);
+  width: 70px;
+  height: 100vh;
+  background-color: var(--color-bg-tertiary);
+  border-right: 1px solid var(--color-border);
   position: sticky;
   top: 0;
   z-index: 10;
+  padding: var(--spacing-lg) 0;
+  flex-shrink: 0;
 }
 
-.top-bar-left {
+.side-bar-top {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--spacing-xl);
+  gap: 32px;
+  width: 100%;
 }
 
-.top-bar h1 {
-  margin: 0;
-  font-size: 1.5rem;
+.side-bar-brand {
   color: var(--color-secondary);
-}
-
-/* Desktop Navigation (Hidden on mobile) */
-.desktop-nav {
-  display: none;
-  gap: var(--spacing-lg);
-}
-
-.desktop-nav-item {
+  cursor: pointer;
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: var(--spacing-xs);
+  width: 100%;
+  transition: transform 0.2s ease;
+}
+
+.side-bar-brand:hover {
+  transform: scale(1.05);
+}
+
+.side-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  width: 100%;
+}
+
+.side-nav-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   color: var(--color-text-muted);
-  font-weight: 500;
-  font-size: 0.95rem;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
   background: none;
   border: none;
   cursor: pointer;
-  padding: var(--spacing-xs) 0;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto;
+  border-radius: var(--radius-md);
 }
 
-.desktop-nav-item.active {
+.side-nav-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-main);
+}
+
+.side-nav-item.active {
   color: var(--color-primary);
-  border-bottom: 2px solid var(--color-primary);
+  background-color: rgba(200, 102, 80, 0.1);
 }
 
-.profile-btn {
-  color: var(--color-text-muted);
-  padding: var(--spacing-xs);
+.side-bar-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 /* Bottom Navigation (Hidden on desktop) */
@@ -652,7 +675,7 @@
   }
 
   /* Navigation */
-  .desktop-nav {
+  .side-bar {
     display: flex;
   }
   
@@ -866,18 +889,19 @@
 
 .home-hero {
   text-align: center;
-  margin-bottom: 8px;
+  margin-bottom: 40px;
 }
 
 .home-hero h2 {
   font-size: 1.9rem;
-  margin-bottom: 4px;
+  margin-bottom: 12px;
   color: var(--color-text-main);
 }
 
 .home-hero p {
   color: var(--color-text-muted);
   font-size: 1.05rem;
+  line-height: 1.5;
 }
 
 .home-search-bar {
@@ -939,27 +963,28 @@
 }
 
 .home-section-title {
-  font-size: 1.15rem;
-  margin-bottom: 12px;
+  font-size: 1.3rem;
+  margin-bottom: 20px;
   color: var(--color-text-main);
+  font-weight: 600;
 }
 
 .home-categories-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  gap: 24px;
 }
 
 .home-category-card {
   background-color: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 16px 12px;
+  border-radius: var(--radius-lg);
+  padding: 24px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 8px;
+  gap: 12px;
   box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -974,13 +999,13 @@
 .home-category-icon {
   color: var(--color-secondary);
   background-color: var(--color-bg-secondary);
-  padding: 10px;
+  padding: 16px;
   border-radius: var(--radius-full);
 }
 
 .home-category-label {
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   color: var(--color-text-main);
 }
 
