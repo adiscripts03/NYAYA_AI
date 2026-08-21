@@ -108,7 +108,7 @@ function App() {
       {currentView !== 'landing' && !isLoading && (
         <aside className="side-bar">
           <div className="side-bar-top">
-            <div className="side-bar-brand" onClick={() => handleNavigate('home')} title="Nyaya AI">
+            <div className="side-bar-brand" onClick={() => handleNavigate('landing')} title="Nyaya AI">
               <Scale size={28} />
             </div>
             

@@ -44,6 +44,10 @@ export const LegalAgentState = Annotation.Root({
     reducer: (x, y) => x.concat(y),
     default: () => [],
   }),
+  rti_addon: Annotation<Record<string, any>>({
+    reducer: (x, y) => y ?? x,
+    default: () => ({}),
+  }),
 });
 
 // Infer the type from Annotation
@@ -212,6 +216,58 @@ CRITICAL: You must format all URLs as clickable markdown links, for example: [Na
   return { action_plan: response.content.toString() };
 }
 
+// RTI Addon Node: Evaluates if RTI is applicable and drafts application.
+async function rtiAddonNode(state: LegalAgentStateType): Promise<Partial<LegalAgentStateType>> {
+  console.log("--- RTI DRAFTING ADDON NODE ---");
+  
+  const rtiSchema = z.object({
+    needs_rti: z.boolean().describe("True if the user's issue is against a government/public body and eligible for an RTI application. False otherwise."),
+    department: z.string().optional().describe("The name of the government department or public body (if eligible)."),
+    rti_draft: z.string().optional().describe("The drafted RTI application text containing placeholders for user details (if eligible).")
+  });
+
+  const systemPrompt = `You are an RTI Drafting Add-on that runs AFTER the Rights Navigator.
+You NEVER alter or replace the Navigator's response. You only evaluate if RTI is applicable and draft it.
+
+Step 1 — Check eligibility:
+RTI can only be filed against a GOVERNMENT/PUBLIC body (municipal office, police station, PDS/ration office, rent control office, any govt department) that is not responding, has an unclear complaint status, or took a decision the user wants explained/recorded.
+If the dispute is with a PRIVATE party (landlord, employer, shopkeeper, private company) → RTI does not apply.
+
+Step 2 — If NOT eligible:
+Set needs_rti to false. (Leave department and rti_draft blank).
+
+Step 3 — If eligible:
+Draft a formal RTI application with the following structure:
+- To: The Public Information Officer, [Department]
+- Subject line
+- Body: 3-5 specific, factual, numbered questions (derived from the user's issue and navigator's response) — no opinions, no vague asks.
+- Applicant name: [Your Name], Address: [Your Address], Date, Place
+- Reference: Section 6(1), Right to Information Act, 2005
+
+Be conservative on eligibility; when unsure, set needs_rti to false.`;
+
+  const prompt = ChatPromptTemplate.fromMessages([
+    ["system", systemPrompt],
+    ["human", `User Issue: {user_issue}\n\nNavigator Response:\n{navigator_response}`]
+  ]);
+
+  try {
+    const rtiResult = await callWithFallback(
+      prompt,
+      {
+        user_issue: state.user_story,
+        navigator_response: `${state.legal_advice}\n\n${state.action_plan}`
+      },
+      { structuredSchema: rtiSchema, structuredName: "rti_evaluator" }
+    );
+    
+    return { rti_addon: rtiResult };
+  } catch (error: any) {
+    console.error("RTI Addon Error:", error.message);
+    return { rti_addon: { needs_rti: false } };
+  }
+}
+
 // Conditional Edge Logic for Fact Extractor Retry Loop
 function checkExtractionSuccess(state: LegalAgentStateType): string {
   if (state.errors.length > 0 && Object.keys(state.key_facts).length === 0) {
@@ -233,6 +289,7 @@ const workflow = new StateGraph(LegalAgentState)
   .addNode("kanoonApi", kanoonAPINode)
   .addNode("legalAdvisor", legalAdvisorNode)
   .addNode("actionPlan", actionPlanNode)
+  .addNode("rtiAddon", rtiAddonNode)
   .addEdge(START, "triage")
   .addEdge("triage", "factExtractor")
   .addConditionalEdges(
@@ -245,7 +302,8 @@ const workflow = new StateGraph(LegalAgentState)
   )
   .addEdge("kanoonApi", "legalAdvisor")
   .addEdge("legalAdvisor", "actionPlan")
-  .addEdge("actionPlan", END);
+  .addEdge("actionPlan", "rtiAddon")
+  .addEdge("rtiAddon", END);
 
 // Compile the graph
 export const legalAdvisorApp = workflow.compile();

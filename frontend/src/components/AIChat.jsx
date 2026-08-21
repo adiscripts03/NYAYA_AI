@@ -134,7 +134,18 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
           text: combinedText,
           citation: `Category: ${data.category} | ${data.kanoon_results?.length ? 'Found relevant cases' : 'No cases found'}`
         };
-        setMessages((prev) => [...prev, aiMsg]);
+        const newMessages = [aiMsg];
+
+        // Append the RTI Add-on Draft if eligible
+        if (data.rti_addon?.needs_rti) {
+          newMessages.push({
+            id: Date.now() + 3,
+            sender: 'ai',
+            text: `**RTI Drafting Add-on:** It looks like your issue is with a government/public body (${data.rti_addon.department || 'the department'}). You are eligible to file an RTI application. Here is a draft you can use:\n\n---\n\n${data.rti_addon.rti_draft}`
+          });
+        }
+
+        setMessages((prev) => [...prev, ...newMessages]);
       } else {
         throw new Error(result.error || "Failed to get advice");
       }

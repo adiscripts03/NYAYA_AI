@@ -38,7 +38,8 @@ app.post("/api/advice", async (req, res) => {
         facts: result.key_facts,
         kanoon_results: result.api_results,
         advice: result.legal_advice,
-        action_plan: result.action_plan
+        action_plan: result.action_plan,
+        rti_addon: result.rti_addon
       }
     });
 

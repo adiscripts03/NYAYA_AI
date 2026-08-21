@@ -106,9 +106,15 @@ export async function callWithFallback(
           name: structuredName || "extract" 
         });
         
-        // For structured output, invoke directly with messages
-        const result = await structuredLlm.invoke(inputValues as any);
-        return result;
+        if (promptTemplate) {
+          const chain = promptTemplate.pipe(structuredLlm);
+          const result = await chain.invoke(inputValues);
+          return result;
+        } else {
+          // If no promptTemplate (e.g. fact extractor), inputValues are the raw messages
+          const result = await structuredLlm.invoke(inputValues as any);
+          return result;
+        }
       } else {
         // Standard prompt → LLM chain
         const chain = promptTemplate.pipe(llm);
