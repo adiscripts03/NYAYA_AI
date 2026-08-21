@@ -10,13 +10,26 @@ import MyCases from './components/MyCases';
 import Resources from './components/Resources';
 
 function App() {
-  const [currentView, setCurrentView] = useState('landing');
+  const [currentView, setCurrentView] = useState(() => {
+    const saved = sessionStorage.getItem('nyaya_current_view');
+    // Restore to saved view if it exists and isn't 'landing'
+    return (saved && saved !== 'landing') ? saved : 'landing';
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [initialQuery, setInitialQuery] = useState({ text: '', autoSend: false, greeting: '', caseId: null });
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('nyaya_theme') === 'dark';
   });
+
+  // Persist current view to sessionStorage
+  useEffect(() => {
+    if (currentView === 'landing') {
+      sessionStorage.removeItem('nyaya_current_view');
+    } else {
+      sessionStorage.setItem('nyaya_current_view', currentView);
+    }
+  }, [currentView]);
 
   useEffect(() => {
     if (isDarkMode) {

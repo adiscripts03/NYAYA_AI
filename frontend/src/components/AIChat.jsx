@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, FileText, Info, ArrowLeft } from 'lucide-react';
+import { Send, FileText, Info, ArrowLeft, Plus, History, MessageSquare, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { saveCase, getCase } from '../utils/storage';
+import { saveCase, getCase, getChatHistory, saveChatSession, getChatSession, deleteChatSession } from '../utils/storage';
 
 const INITIAL_MESSAGES = [
   {
@@ -21,7 +21,23 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
   const [messages, setMessages] = useState([customInitialMessage]);
   const [input, setInput] = useState('');
   const [currentCaseId, setCurrentCaseId] = useState(caseId || null);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const hasFiredRef = useRef(false);
+  const messagesEndRef = useRef(null);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  // Load chat history list
+  useEffect(() => {
+    setChatHistory(getChatHistory());
+  }, []);
 
   // Load case if caseId is provided
   useEffect(() => {
@@ -42,9 +58,9 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
       const id = currentCaseId || `chat-${Date.now()}`;
       if (!currentCaseId) setCurrentCaseId(id);
       
-      const title = userMessages[0].text.substring(0, 40) + '...';
+      const title = userMessages[0].text.substring(0, 40) + (userMessages[0].text.length > 40 ? '...' : '');
       const lastMsg = messages[messages.length - 1].text;
-      const snippet = lastMsg.substring(0, 60) + '...';
+      const snippet = lastMsg.substring(0, 60) + (lastMsg.length > 60 ? '...' : '');
       
       saveCase({
         id,
@@ -56,8 +72,23 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
         snippet,
         data: messages
       });
+
+      // Also save to chat history
+      const sessionId = currentSessionId || id;
+      if (!currentSessionId) setCurrentSessionId(sessionId);
+      
+      saveChatSession({
+        id: sessionId,
+        title,
+        snippet,
+        messageCount: messages.length,
+        messages: messages,
+      });
+
+      // Refresh history list
+      setChatHistory(getChatHistory());
     }
-  }, [messages, currentCaseId]);
+  }, [messages, currentCaseId, currentSessionId]);
 
   const handleSend = async (textOverride) => {
     // If called from an event handler, textOverride might be an event object.
@@ -124,60 +155,160 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
     }
   }, [initialQuery, initialGreeting, autoSend]);
 
-  return (
-    <div className="chat-container">
-      {/* Back Button Header */}
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px', gap: '12px' }}>
-        <button onClick={() => onNavigate('home')} style={{ color: 'var(--color-text-muted)' }}>
-          <ArrowLeft size={24} />
-        </button>
-        <h2 style={{ margin: 0, fontSize: '1.2rem' }}>AI Legal Assistant</h2>
-      </div>
+  // Start a new chat session
+  const handleNewChat = () => {
+    setMessages([INITIAL_MESSAGES[0]]);
+    setInput('');
+    setCurrentCaseId(null);
+    setCurrentSessionId(null);
+    hasFiredRef.current = true; // prevent re-firing initial query
+  };
 
-      <div className="chat-messages">
-        {messages.map((msg) => (
-          <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-            <div className={`message ${msg.sender}`}>
-              <ReactMarkdown>{msg.text}</ReactMarkdown>
-            </div>
-            
-            {msg.citation && (
-              <div className="source-citation" style={{ alignSelf: 'flex-start', marginLeft: '4px' }}>
-                <Info size={12} />
-                {msg.citation}
-              </div>
-            )}
-            
-            {msg.isAction && (
-              <div style={{ alignSelf: 'flex-start', marginTop: '12px', display: 'flex', gap: '8px' }}>
-                <button className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
-                  <FileText size={16} /> Yes, draft notice
-                </button>
-                <button className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
-                  Not right now
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-      
-      <div className="chat-input-area">
-        <textarea 
-          placeholder="Type your message here in plain language..." 
-          rows={2}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-        />
-        <button className="send-btn" onClick={handleSend}>
-          <Send size={20} />
+  // Load a past chat session
+  const handleLoadSession = (sessionId) => {
+    const session = getChatSession(sessionId);
+    if (session && session.messages) {
+      setMessages(session.messages);
+      setCurrentSessionId(session.id);
+      setCurrentCaseId(session.id);
+      hasFiredRef.current = true;
+      setIsHistoryOpen(false);
+    }
+  };
+
+  // Delete a chat session
+  const handleDeleteSession = (e, sessionId) => {
+    e.stopPropagation();
+    deleteChatSession(sessionId);
+    setChatHistory(getChatHistory());
+    // If we deleted the current session, start a new chat
+    if (sessionId === currentSessionId) {
+      handleNewChat();
+    }
+  };
+
+  const formatTimeAgo = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const diffInSeconds = Math.floor((new Date() - date) / 1000);
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  return (
+    <div className="chat-layout">
+      {/* Chat History Sidebar */}
+      <aside className={`chat-history-panel ${isHistoryOpen ? 'open' : ''}`}>
+        <div className="chat-history-header">
+          <h3><History size={16} /> Chat History</h3>
+          <button className="chat-history-close" onClick={() => setIsHistoryOpen(false)} title="Close history">
+            <ChevronLeft size={18} />
+          </button>
+        </div>
+        <button className="new-chat-btn" onClick={handleNewChat}>
+          <Plus size={16} /> New Chat
         </button>
+        <div className="chat-history-list">
+          {chatHistory.length === 0 ? (
+            <div className="chat-history-empty">
+              <MessageSquare size={24} />
+              <p>No previous chats yet</p>
+            </div>
+          ) : (
+            chatHistory.map((session) => (
+              <div
+                key={session.id}
+                className={`chat-history-item ${session.id === currentSessionId ? 'active' : ''}`}
+                onClick={() => handleLoadSession(session.id)}
+              >
+                <div className="chat-history-item-content">
+                  <div className="chat-history-item-title">{session.title}</div>
+                  <div className="chat-history-item-meta">
+                    <span>{session.messageCount} msgs</span>
+                    <span>•</span>
+                    <span>{formatTimeAgo(session.updatedAt)}</span>
+                  </div>
+                </div>
+                <button
+                  className="chat-history-delete"
+                  onClick={(e) => handleDeleteSession(e, session.id)}
+                  title="Delete chat"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </aside>
+
+      {/* Main Chat Area */}
+      <div className="chat-container">
+        {/* Back Button Header */}
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px', gap: '12px' }}>
+          <button onClick={() => onNavigate('home')} style={{ color: 'var(--color-text-muted)' }}>
+            <ArrowLeft size={24} />
+          </button>
+          <h2 style={{ margin: 0, fontSize: '1.2rem', flex: 1 }}>AI Legal Assistant</h2>
+          <button
+            className={`chat-history-toggle ${isHistoryOpen ? 'active' : ''}`}
+            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+            title="Chat History"
+          >
+            <History size={20} />
+          </button>
+        </div>
+
+        <div className="chat-messages">
+          {messages.map((msg) => (
+            <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+              <div className={`message ${msg.sender}`}>
+                <ReactMarkdown>{msg.text}</ReactMarkdown>
+              </div>
+              
+              {msg.citation && (
+                <div className="source-citation" style={{ alignSelf: 'flex-start', marginLeft: '4px' }}>
+                  <Info size={12} />
+                  {msg.citation}
+                </div>
+              )}
+              
+              {msg.isAction && (
+                <div style={{ alignSelf: 'flex-start', marginTop: '12px', display: 'flex', gap: '8px' }}>
+                  <button className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
+                    <FileText size={16} /> Yes, draft notice
+                  </button>
+                  <button className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
+                    Not right now
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+          {/* Sentinel element for auto-scrolling */}
+          <div ref={messagesEndRef} />
+        </div>
+        
+        <div className="chat-input-area">
+          <textarea 
+            placeholder="Type your message here in plain language..." 
+            rows={2}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+          />
+          <button className="send-btn" onClick={handleSend}>
+            <Send size={20} />
+          </button>
+        </div>
       </div>
     </div>
   );

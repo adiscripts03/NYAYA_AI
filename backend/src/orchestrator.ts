@@ -4,6 +4,7 @@ import { ChatGroq } from "@langchain/groq";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { z } from "zod";
+import { callWithFallback, getLLM } from "./modelProvider.js";
 
 // 1. Graph State (`LegalAgentState`)
 export const LegalAgentState = Annotation.Root({
@@ -44,12 +45,6 @@ export const LegalAgentState = Annotation.Root({
 // Infer the type from Annotation
 export type LegalAgentStateType = typeof LegalAgentState.State;
 
-// Define your LLM instance (ensure you have process.env.GROQ_API_KEY set)
-const llm = new ChatGroq({
-  model: "openai/gpt-oss-20b", // Reverting to the model specified by your friend
-  temperature: 0,
-});
-
 // 2. Graph Nodes (The Agents)
 
 // TriageNode: Classifies the user_story into a specific legal category.
@@ -61,8 +56,7 @@ async function triageNode(state: LegalAgentStateType): Promise<Partial<LegalAgen
     ["human", "{user_story}"]
   ]);
 
-  const chain = prompt.pipe(llm);
-  const response = await chain.invoke({ user_story: state.user_story });
+  const response = await callWithFallback(prompt, { user_story: state.user_story });
   
   return { law_category: response.content.toString().trim() };
 }
@@ -78,13 +72,15 @@ async function factExtractorNode(state: LegalAgentStateType): Promise<Partial<Le
     core_issue_summary: z.string().describe("A 1-sentence summary of the main legal issue."),
   });
 
-  const structuredLlm = llm.withStructuredOutput(factSchema, { name: "extract_facts" });
-  
   try {
-    const extractedFacts = await structuredLlm.invoke([
-      new SystemMessage("You are an expert legal data extractor. Extract the key facts from the user's story into the required JSON structure."),
-      new HumanMessage(state.user_story)
-    ]);
+    const extractedFacts = await callWithFallback(
+      null, // no prompt template for structured output
+      [
+        new SystemMessage("You are an expert legal data extractor. Extract the key facts from the user's story into the required JSON structure."),
+        new HumanMessage(state.user_story)
+      ],
+      { structuredSchema: factSchema, structuredName: "extract_facts" }
+    );
     return { key_facts: extractedFacts };
   } catch (error: any) {
     return { errors: [error.message || "Extraction Failed"] };
@@ -164,8 +160,7 @@ Conversation History: {history}
     ["human", "Here is my latest story: {user_story}\n\nPlease give me clear and simple legal advice based on this and our history."]
   ]);
 
-  const chain = prompt.pipe(llm);
-  const response = await chain.invoke({
+  const response = await callWithFallback(prompt, {
     law_category: state.law_category,
     key_facts: JSON.stringify(state.key_facts, null, 2),
     api_results: JSON.stringify(state.api_results, null, 2),
@@ -188,8 +183,7 @@ CRITICAL: You must format all URLs as clickable markdown links, for example: [Na
     ["human", "Conversation History:\n{history}\n\nLegal Advice:\n{legal_advice}\n\nWhat should I do next?"]
   ]);
 
-  const chain = prompt.pipe(llm);
-  const response = await chain.invoke({ 
+  const response = await callWithFallback(prompt, { 
     legal_advice: state.legal_advice,
     history: JSON.stringify(state.history, null, 2)
   });
