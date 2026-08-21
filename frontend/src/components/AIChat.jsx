@@ -10,8 +10,14 @@ const INITIAL_MESSAGES = [
   }
 ];
 
-export default function AIChat({ onNavigate, initialQuery, clearQuery }) {
-  const [messages, setMessages] = useState(INITIAL_MESSAGES);
+export default function AIChat({ onNavigate, initialQuery, autoSend, initialGreeting, clearQuery }) {
+  const customInitialMessage = initialGreeting ? {
+    id: 1,
+    sender: 'ai',
+    text: initialGreeting
+  } : INITIAL_MESSAGES[0];
+
+  const [messages, setMessages] = useState([customInitialMessage]);
   const [input, setInput] = useState('');
   const hasFiredRef = useRef(false);
 
@@ -69,12 +75,16 @@ export default function AIChat({ onNavigate, initialQuery, clearQuery }) {
   };
 
   useEffect(() => {
-    if (initialQuery && !hasFiredRef.current) {
+    if ((initialQuery || initialGreeting) && !hasFiredRef.current) {
       hasFiredRef.current = true;
-      handleSend(initialQuery);
+      if (initialQuery && autoSend) {
+        handleSend(initialQuery);
+      } else if (initialQuery) {
+        setInput(initialQuery);
+      }
       if (clearQuery) clearQuery();
     }
-  }, [initialQuery]);
+  }, [initialQuery, initialGreeting, autoSend]);
 
   return (
     <div className="chat-container">

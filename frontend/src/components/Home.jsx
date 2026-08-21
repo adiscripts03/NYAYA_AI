@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { Search, ArrowRight, House, Briefcase, FileText, Landmark, Scroll, Clock } from 'lucide-react';
 
 const CATEGORIES = [
-  { id: 'tenant', title: 'Tenant Rights', icon: House, query: 'I have a tenant right question about security deposit or lease.' },
-  { id: 'consumer', title: 'Consumer Complaints', icon: Search, query: 'I want to file a consumer complaint regarding defective product.' },
-  { id: 'workplace', title: 'Workplace Issues', icon: Briefcase, query: 'I need guidance on workplace rights and severance.' },
-  { id: 'rti', title: 'RTI Applications', icon: FileText, query: 'I want to draft an RTI application.' },
-  { id: 'welfare', title: 'Welfare Schemes', icon: Landmark, query: 'Which government welfare schemes am I eligible for?' },
-  { id: 'general', title: 'General Legal Advice', icon: Scroll, query: 'I need general legal advice.' },
+  { id: 'tenant', title: 'Tenant Rights', icon: House, greeting: "Hello! I specialize in Tenant Rights. Are you dealing with a security deposit issue, an eviction, or a lease dispute?" },
+  { id: 'consumer', title: 'Consumer Complaints', icon: Search, greeting: "Hello! I can help you navigate consumer protection laws. What product, service, or seller are you having trouble with?" },
+  { id: 'workplace', title: 'Workplace Issues', icon: Briefcase, greeting: "Hello! I'm here to assist with workplace rights. Are you facing problems with wrongful termination, unpaid wages, or harassment?" },
+  { id: 'rti', title: 'RTI Applications', icon: FileText, greeting: "Hello! I can help you draft a Right to Information (RTI) application." },
+  { id: 'welfare', title: 'Welfare Schemes', icon: Landmark, greeting: "Hello! I can help you discover government welfare schemes. Could you tell me a bit about your demographic and financial situation?" },
+  { id: 'general', title: 'General Legal Advice', icon: Scroll, greeting: "Hello. I'm Nyaya AI. I can help you understand your rights and figure out your next steps. What situation are you dealing with today?" },
 ];
 
 export default function Home({ onNavigate }) {
@@ -15,7 +15,7 @@ export default function Home({ onNavigate }) {
 
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
-      onNavigate('chat', searchQuery);
+      onNavigate('chat', searchQuery, true); // True to auto-send from search bar
     } else {
       onNavigate('chat');
     }
@@ -55,7 +55,7 @@ export default function Home({ onNavigate }) {
               className="home-category-card"
               onClick={() => {
                 if (cat.id === 'rti') onNavigate('rti');
-                else onNavigate('chat', cat.query);
+                else onNavigate('chat', '', false, cat.greeting); // Empty query, no auto-send, custom greeting
               }}
             >
               <div className="home-category-icon">

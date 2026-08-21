@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ArrowRight, Download, CheckCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Download, CheckCircle, Copy, ExternalLink, Sparkles, Loader2 } from 'lucide-react';
 
 export default function RTIDrafting({ onNavigate }) {
   const [step, setStep] = useState(1);
@@ -7,13 +7,39 @@ export default function RTIDrafting({ onNavigate }) {
     name: '',
     address: '',
     department: '',
+    department: '',
     information: ''
   });
+  const [isFinalized, setIsFinalized] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
 
   const totalSteps = 3;
 
   const handleNext = () => setStep(Math.min(step + 1, totalSteps));
   const handlePrev = () => setStep(Math.max(step - 1, 1));
+
+  const handleRefine = async () => {
+    if (!formData.information.trim()) return;
+    setIsRefining(true);
+    try {
+      const response = await fetch("http://localhost:8000/api/refine-rti", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raw_text: formData.information })
+      });
+      const result = await response.json();
+      if (result.success && result.refined_text) {
+        setFormData({ ...formData, information: result.refined_text });
+      } else {
+        alert("Failed to refine: " + (result.error || "Unknown error"));
+      }
+    } catch (error) {
+      console.error("Failed to refine:", error);
+      alert("Failed to refine text. Please try again.");
+    } finally {
+      setIsRefining(false);
+    }
+  };
 
   return (
     <div className="rti-flow">
@@ -85,10 +111,21 @@ export default function RTIDrafting({ onNavigate }) {
                 <p>What exactly do you want to know? Try to be as specific as possible.</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Your Request</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
+                      <label style={{ fontWeight: '500' }}>Your Request (Raw format is fine)</label>
+                      <button 
+                        className="btn-secondary" 
+                        style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: (isRefining || !formData.information.trim()) ? 'not-allowed' : 'pointer' }}
+                        onClick={handleRefine}
+                        disabled={isRefining || !formData.information.trim()}
+                      >
+                        {isRefining ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} style={{ color: 'var(--color-primary)' }} />} 
+                        {isRefining ? 'Refining...' : 'Refine with AI'}
+                      </button>
+                    </div>
                     <textarea 
                       className="input-field" 
-                      placeholder="I would like to request the following information regarding..."
+                      placeholder="e.g., THE EXPENDITURE OF THE YEAR 2026-27"
                       rows={6}
                       value={formData.information}
                       onChange={(e) => setFormData({...formData, information: e.target.value})}
@@ -111,33 +148,67 @@ export default function RTIDrafting({ onNavigate }) {
                 Continue <ArrowRight size={20} />
               </button>
             ) : (
-              <button className="btn-primary" style={{ backgroundColor: 'var(--color-success)' }}>
-                <CheckCircle size={20} /> Finalize
-              </button>
+              !isFinalized && (
+                <button className="btn-primary" style={{ backgroundColor: 'var(--color-success)' }} onClick={() => setIsFinalized(true)}>
+                  <CheckCircle size={20} /> Finalize
+                </button>
+              )
             )}
           </div>
+
+          {isFinalized && (
+            <div style={{ marginTop: '30px', padding: '24px', backgroundColor: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-success)' }}>
+              <h3 style={{ color: 'var(--color-success)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CheckCircle size={24} /> RTI Draft Finalized!
+              </h3>
+              <p style={{ marginBottom: '20px', color: 'var(--color-text-main)' }}>
+                Your document is ready. You can now copy it and file it directly on the official government portal.
+              </p>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                <button 
+                  className="btn-primary" 
+                  onClick={() => {
+                    const text = `To,\nThe Public Information Officer (PIO),\n${formData.department || '[Department Name]'}\n\nSubject: Request for Information under Right to Information Act, 2005.\n\nSir/Madam,\nI, ${formData.name || '[Your Name]'}, a citizen of India, request you to provide the following information under the RTI Act, 2005:\n\n${formData.information || '[Your specific questions and requests will appear here]'}\n\nPlease send the information to my mailing address:\n${formData.address || '[Your Address]'}\n\nSincerely,\n${formData.name || '[Your Name]'}`;
+                    navigator.clipboard.writeText(text);
+                    alert("Document copied to clipboard!");
+                  }}
+                >
+                  <Copy size={18} /> Copy Document
+                </button>
+                <a 
+                  href="https://rtionline.gov.in/" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="btn-secondary" 
+                  style={{ textDecoration: 'none' }}
+                >
+                  File on RTI Online <ExternalLink size={18} />
+                </a>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Live Preview Pane */}
         <div className="live-preview">
           <h3>Live Document Preview</h3>
           <div className="document-content">
-To,
+{`To,
 The Public Information Officer (PIO),
-{formData.department ? formData.department : '[Department Name]'}
+${formData.department ? formData.department : '[Department Name]'}
 
 Subject: Request for Information under Right to Information Act, 2005.
 
 Sir/Madam,
-I, {formData.name ? formData.name : '[Your Name]'}, a citizen of India, request you to provide the following information under the RTI Act, 2005:
+I, ${formData.name ? formData.name : '[Your Name]'}, a citizen of India, request you to provide the following information under the RTI Act, 2005:
 
-{formData.information ? formData.information : '[Your specific questions and requests will appear here]'}
+${formData.information ? formData.information : '[Your specific questions and requests will appear here]'}
 
 Please send the information to my mailing address:
-{formData.address ? formData.address : '[Your Address]'}
+${formData.address ? formData.address : '[Your Address]'}
 
 Sincerely,
-{formData.name ? formData.name : '[Your Name]'}
+${formData.name ? formData.name : '[Your Name]'}`}
           </div>
         </div>
       </div>

@@ -12,12 +12,12 @@ import Resources from './components/Resources';
 function App() {
   const [currentView, setCurrentView] = useState('landing');
   const [isLoading, setIsLoading] = useState(false);
-  const [initialQuery, setInitialQuery] = useState('');
+  const [initialQuery, setInitialQuery] = useState({ text: '', autoSend: false, greeting: '' });
 
-  const handleNavigate = (view, query = '') => {
+  const handleNavigate = (view, query = '', autoSend = true, greeting = '') => {
     setCurrentView(view);
-    if (query) {
-      setInitialQuery(query);
+    if (query || greeting) {
+      setInitialQuery({ text: query, autoSend, greeting });
     }
   };
 
@@ -41,7 +41,13 @@ function App() {
       case 'home':
         return <Home onNavigate={handleNavigate} />;
       case 'chat':
-        return <AIChat onNavigate={handleNavigate} initialQuery={initialQuery} clearQuery={() => setInitialQuery('')} />;
+        return <AIChat 
+                 onNavigate={handleNavigate} 
+                 initialQuery={initialQuery.text} 
+                 autoSend={initialQuery.autoSend}
+                 initialGreeting={initialQuery.greeting}
+                 clearQuery={() => setInitialQuery({ text: '', autoSend: false, greeting: '' })} 
+               />;
       case 'rti':
         return <RTIDrafting onNavigate={handleNavigate} />;
       case 'cases':
