@@ -107,25 +107,18 @@ Formal RTI Request Text:`]
 
 app.post("/api/refine-bail", async (req, res) => {
   try {
-    const { raw_text, form_data } = req.body;
+    const { raw_text, form_data = {} } = req.body;
     if (!raw_text) {
        res.status(400).json({ error: "Missing raw_text" });
        return;
     }
 
     console.log("Refining Bail grounds...");
-    const llm = new ChatOpenAI({
-      modelName: "openai/gpt-oss-20b",
-      temperature: 0.2,
-      apiKey: process.env.GROQ_API_KEY,
-      configuration: {
-        baseURL: "https://api.groq.com/openai/v1",
-      },
-    });
 
-    const prompt = PromptTemplate.fromTemplate(`
-You are an expert Indian criminal defense lawyer drafting a bail application under Section 437/439 of the CrPC / corresponding BNSS sections.
-The user has provided raw facts and grounds for why the accused should be granted bail (e.g., false implication, parity, health issues).
+    const { ChatPromptTemplate } = await import("@langchain/core/prompts");
+    const chatPrompt = ChatPromptTemplate.fromMessages([
+      ["system", "You are an expert Indian criminal defense lawyer drafting a bail application under Section 437/439 of the CrPC / corresponding BNSS sections."],
+      ["human", `The user has provided raw facts and grounds for why the accused should be granted bail (e.g., false implication, parity, health issues).
 Your task is to take these raw notes and rewrite them into a highly formal, persuasive, and legally sound "MOST RESPECTFULLY SHOWETH" section for a bail application.
 
 Guidelines:
@@ -137,35 +130,34 @@ Guidelines:
 User's Raw Notes:
 {raw_text}
 
-Formal Bail Grounds Text:
-`);
+Formal Bail Grounds Text:`]
+    ]);
 
-    const chain = prompt.pipe(llm);
-    const response = await chain.invoke({ raw_text });
+    const response = await callWithFallback(chatPrompt, { raw_text }, { temperature: 0.2 });
     
     // Construct the full document
-    const fullDoc = \`IN THE COURT OF \${(form_data.courtName || '_____').toUpperCase()}
+    const fullDoc = `IN THE COURT OF ${(form_data.courtName || '_____').toUpperCase()}
 
 IN THE MATTER OF:
-\${(form_data.accusedName || '_____').toUpperCase()} ...APPLICANT
+${(form_data.accusedName || '_____').toUpperCase()} ...APPLICANT
 
 VERSUS
 
 STATE ...RESPONDENT
 
-FIR NO: \${form_data.firDetails || '_____'}
-U/S: \${form_data.sections || '_____'}
+FIR NO: ${form_data.firDetails || '_____'}
+U/S: ${form_data.sections || '_____'}
 
 APPLICATION FOR BAIL
 
 MOST RESPECTFULLY SHOWETH:
-\${response.content}
+${response.content}
 
 PRAYER:
 In view of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may be pleased to grant bail to the applicant/accused in the interest of justice.
 
 PLACE:
-DATE:                                                                            ADVOCATE FOR APPLICANT\`;
+DATE:                                                                            ADVOCATE FOR APPLICANT`;
 
     res.json({ success: true, refined_text: fullDoc });
   } catch (error: any) {
