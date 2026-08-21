@@ -36,58 +36,69 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
 
   // Load chat history list
   useEffect(() => {
-    setChatHistory(getChatHistory());
+    const fetchHistory = async () => {
+      const history = await getChatHistory();
+      setChatHistory(history);
+    };
+    fetchHistory();
   }, []);
 
   // Load case if caseId is provided
   useEffect(() => {
     if (caseId) {
-      const savedCase = getCase(caseId);
-      if (savedCase && savedCase.data) {
-        setMessages(savedCase.data);
-        setCurrentCaseId(caseId);
-        hasFiredRef.current = true; // Prevent initial query firing if loading old case
-      }
+      const fetchCaseData = async () => {
+        const savedCase = await getCase(caseId);
+        if (savedCase && savedCase.data) {
+          setMessages(savedCase.data);
+          setCurrentCaseId(caseId);
+          hasFiredRef.current = true; // Prevent initial query firing if loading old case
+        }
+      };
+      fetchCaseData();
     }
   }, [caseId]);
 
   // Save case whenever messages change (if there are user messages)
   useEffect(() => {
-    const userMessages = messages.filter(m => m.sender === 'user');
-    if (userMessages.length > 0) {
-      const id = currentCaseId || `chat-${Date.now()}`;
-      if (!currentCaseId) setCurrentCaseId(id);
-      
-      const title = userMessages[0].text.substring(0, 40) + (userMessages[0].text.length > 40 ? '...' : '');
-      const lastMsg = messages[messages.length - 1].text;
-      const snippet = lastMsg.substring(0, 60) + (lastMsg.length > 60 ? '...' : '');
-      
-      saveCase({
-        id,
-        title,
-        category: 'Legal Advice',
-        status: 'In Draft',
-        statusColor: 'var(--color-warning)',
-        type: 'Chat Session',
-        snippet,
-        data: messages
-      });
+    const saveData = async () => {
+      const userMessages = messages.filter(m => m.sender === 'user');
+      if (userMessages.length > 0) {
+        const id = currentCaseId || `chat-${Date.now()}`;
+        if (!currentCaseId) setCurrentCaseId(id);
+        
+        const title = userMessages[0].text.substring(0, 40) + (userMessages[0].text.length > 40 ? '...' : '');
+        const lastMsg = messages[messages.length - 1].text;
+        const snippet = lastMsg.substring(0, 60) + (lastMsg.length > 60 ? '...' : '');
+        
+        await saveCase({
+          id,
+          title,
+          category: 'Legal Advice',
+          status: 'In Draft',
+          statusColor: 'var(--color-warning)',
+          type: 'Chat Session',
+          snippet,
+          data: messages
+        });
 
-      // Also save to chat history
-      const sessionId = currentSessionId || id;
-      if (!currentSessionId) setCurrentSessionId(sessionId);
-      
-      saveChatSession({
-        id: sessionId,
-        title,
-        snippet,
-        messageCount: messages.length,
-        messages: messages,
-      });
+        // Also save to chat history
+        const sessionId = currentSessionId || id;
+        if (!currentSessionId) setCurrentSessionId(sessionId);
+        
+        await saveChatSession({
+          id: sessionId,
+          title,
+          snippet,
+          messageCount: messages.length,
+          messages: messages,
+        });
 
-      // Refresh history list
-      setChatHistory(getChatHistory());
-    }
+        // Refresh history list
+        const history = await getChatHistory();
+        setChatHistory(history);
+      }
+    };
+    saveData();
   }, [messages, currentCaseId, currentSessionId]);
 
   const handleSend = async (textOverride) => {
@@ -177,8 +188,8 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
   };
 
   // Load a past chat session
-  const handleLoadSession = (sessionId) => {
-    const session = getChatSession(sessionId);
+  const handleLoadSession = async (sessionId) => {
+    const session = await getChatSession(sessionId);
     if (session && session.messages) {
       setMessages(session.messages);
       setCurrentSessionId(session.id);
@@ -189,10 +200,11 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
   };
 
   // Delete a chat session
-  const handleDeleteSession = (e, sessionId) => {
+  const handleDeleteSession = async (e, sessionId) => {
     e.stopPropagation();
-    deleteChatSession(sessionId);
-    setChatHistory(getChatHistory());
+    await deleteChatSession(sessionId);
+    const history = await getChatHistory();
+    setChatHistory(history);
     // If we deleted the current session, start a new chat
     if (sessionId === currentSessionId) {
       handleNewChat();
@@ -239,7 +251,7 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
                 <div className="chat-history-item-content">
                   <div className="chat-history-item-title">{session.title}</div>
                   <div className="chat-history-item-meta">
-                    <span>{session.messageCount} msgs</span>
+                    <span>{session.messageCount || session.messages?.length || 0} msgs</span>
                     <span>•</span>
                     <span>{formatTimeAgo(session.updatedAt)}</span>
                   </div>

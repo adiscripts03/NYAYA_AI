@@ -158,7 +158,9 @@ async function factExtractorNode(state: LegalAgentStateType): Promise<Partial<Le
   }
 }
 
-// KanoonAPINode: Takes extracted facts, queries Kanoon API.
+// KanoonAPINode: Takes extracted facts, queries Kanoon API (with Redis Caching).
+import redisClient from "./config/redis.js";
+
 async function kanoonAPINode(state: LegalAgentStateType): Promise<Partial<LegalAgentStateType>> {
   console.log("--- KANOON API NODE ---");
   
@@ -173,7 +175,19 @@ async function kanoonAPINode(state: LegalAgentStateType): Promise<Partial<LegalA
 
   try {
     const query = `${state.key_facts.incident_type || ""} ${state.key_facts.core_issue_summary || ""}`.trim();
+    if (!query) return { api_results: [] };
+
     const encodedQuery = encodeURIComponent(query);
+    const cacheKey = `kanoon:${encodedQuery}`;
+
+    // Try hitting Redis Cache
+    if (redisClient.isOpen) {
+      const cached = await redisClient.get(cacheKey);
+      if (cached) {
+        console.log("  → Found results in Redis Cache!");
+        return { api_results: JSON.parse(cached) };
+      }
+    }
     
     const url = `https://api.indiankanoon.org/search/?formInput=${encodedQuery}`;
     
@@ -197,6 +211,11 @@ async function kanoonAPINode(state: LegalAgentStateType): Promise<Partial<LegalA
       headline: doc.headline, 
       docsource: doc.docsource
     }));
+
+    // Save to Redis Cache (Expire in 24 hours = 86400 seconds)
+    if (redisClient.isOpen && api_results.length > 0) {
+      await redisClient.setEx(cacheKey, 86400, JSON.stringify(api_results));
+    }
 
     return { api_results };
   } catch (error: any) {

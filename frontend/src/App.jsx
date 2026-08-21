@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import './App.css';
-import { House, FolderOpen, Briefcase, ArrowLeft, Scale, Moon, Sun, LogOut, Gavel, User } from 'lucide-react';
+import { House, FolderOpen, Briefcase, Scale, Moon, Sun, LogOut, Gavel, User } from 'lucide-react';
 import Landing from './components/Landing';
-import LoadingScreen from './components/LoadingScreen';
 import Home from './components/Home';
 import AIChat from './components/AIChat';
 import RTIDrafting from './components/RTIDrafting';
@@ -11,13 +11,12 @@ import MyCases from './components/MyCases';
 import Resources from './components/Resources';
 
 function App() {
-  const [currentView, setCurrentView] = useState(() => {
-    const saved = sessionStorage.getItem('nyaya_current_view');
-    // Restore to saved view if it exists and isn't 'landing'
-    return (saved && saved !== 'landing') ? saved : 'landing';
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [initialQuery, setInitialQuery] = useState({ text: '', autoSend: false, greeting: '', caseId: null });
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Extract state if passed via navigation
+  const navState = location.state || {};
+  const currentView = location.pathname === '/' ? 'landing' : location.pathname.substring(1).split('/')[0] || 'landing';
 
   const [userPersona, setUserPersona] = useState(() => {
     return localStorage.getItem('nyaya_persona') || 'citizen';
@@ -33,15 +32,6 @@ function App() {
     return localStorage.getItem('nyaya_theme') === 'dark';
   });
 
-  // Persist current view to sessionStorage
-  useEffect(() => {
-    if (currentView === 'landing') {
-      sessionStorage.removeItem('nyaya_current_view');
-    } else {
-      sessionStorage.setItem('nyaya_current_view', currentView);
-    }
-  }, [currentView]);
-
   useEffect(() => {
     if (isDarkMode) {
       document.body.classList.add('dark-theme');
@@ -54,68 +44,29 @@ function App() {
 
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
-  const handleNavigate = (view, query = '', autoSend = true, greeting = '', caseId = null) => {
-    setCurrentView(view);
-    if (query || greeting || caseId) {
-      setInitialQuery({ text: query, autoSend, greeting, caseId });
-    }
+  // New generic navigate function to pass state (compatibility layer for child components)
+  const handleNavigate = (path, query = '', autoSend = true, greeting = '', caseId = null) => {
+    const route = path === 'landing' ? '/' : `/${path}`;
+    navigate(route, { state: { text: query, autoSend, greeting, caseId } });
   };
 
   const handleEnterSystem = () => {
-    setIsLoading(true);
-  };
-
-  const handleLoadingComplete = () => {
-    setIsLoading(false);
-    setCurrentView('home');
-  };
-
-  const renderView = () => {
-    if (isLoading) {
-      return <LoadingScreen onComplete={handleLoadingComplete} />;
-    }
-
-    switch(currentView) {
-      case 'landing':
-        return <Landing onNavigate={handleEnterSystem} />;
-      case 'home':
-        return <Home onNavigate={handleNavigate} userPersona={userPersona} />;
-      case 'chat':
-        return <AIChat 
-                 onNavigate={handleNavigate} 
-                 initialQuery={initialQuery.text} 
-                 autoSend={initialQuery.autoSend}
-                 initialGreeting={initialQuery.greeting}
-                 caseId={initialQuery.caseId}
-                 userPersona={userPersona}
-                 clearQuery={() => setInitialQuery({ text: '', autoSend: false, greeting: '', caseId: null })} 
-               />;
-      case 'rti':
-        return <RTIDrafting onNavigate={handleNavigate} caseId={initialQuery.caseId} />;
-      case 'bail':
-        return <BailDrafting onNavigate={handleNavigate} caseId={initialQuery.caseId} />;
-      case 'cases':
-        return <MyCases onNavigate={handleNavigate} />;
-      case 'resources':
-        return <Resources onNavigate={handleNavigate} />;
-      default:
-        return <Home onNavigate={handleNavigate} />;
-    }
+    navigate('/home');
   };
 
   return (
     <div className="app-container">
-      {currentView !== 'landing' && !isLoading && (
+      {currentView !== 'landing' && (
         <aside className="side-bar">
           <div className="side-bar-top">
-            <div className="side-bar-brand" onClick={() => handleNavigate('landing')} title="Nyaya AI">
+            <div className="side-bar-brand" onClick={() => navigate('/')} title="Nyaya AI">
               <Scale size={28} />
             </div>
             
             <nav className="side-nav">
               <button 
                 className={`side-nav-item ${currentView === 'home' ? 'active' : ''}`}
-                onClick={() => handleNavigate('home')}
+                onClick={() => navigate('/home')}
                 title="Home"
               >
                 <House size={22} />
@@ -123,7 +74,7 @@ function App() {
               
               <button 
                 className={`side-nav-item ${currentView === 'cases' ? 'active' : ''}`}
-                onClick={() => handleNavigate('cases')}
+                onClick={() => navigate('/cases')}
                 title="My Cases"
               >
                 <FolderOpen size={22} />
@@ -131,7 +82,7 @@ function App() {
 
               <button 
                 className={`side-nav-item ${currentView === 'resources' ? 'active' : ''}`}
-                onClick={() => handleNavigate('resources')}
+                onClick={() => navigate('/resources')}
                 title="Resources"
               >
                 <Briefcase size={22} />
@@ -157,9 +108,7 @@ function App() {
             </button>
             <button 
               className="side-nav-item back-btn"
-              onClick={() => {
-                setCurrentView('landing');
-              }}
+              onClick={() => navigate('/')}
               title="Exit to Landing"
             >
               <LogOut size={22} />
@@ -168,16 +117,33 @@ function App() {
         </aside>
       )}
 
-      <main className={`main-content ${currentView === 'home' ? 'single-screen' : ''}`} style={currentView === 'landing' || isLoading ? { padding: 0 } : {}}>
-        {renderView()}
+      <main className={`main-content ${currentView === 'home' ? 'single-screen' : ''}`} style={currentView === 'landing' ? { padding: 0 } : {}}>
+        <Routes>
+          <Route path="/" element={<Landing onNavigate={handleEnterSystem} />} />
+          <Route path="/home" element={<Home onNavigate={handleNavigate} userPersona={userPersona} />} />
+          <Route path="/chat" element={
+            <AIChat 
+              onNavigate={handleNavigate} 
+              initialQuery={navState.text || ''} 
+              autoSend={navState.autoSend || false}
+              initialGreeting={navState.greeting || ''}
+              caseId={navState.caseId || null}
+              userPersona={userPersona}
+              clearQuery={() => navigate('/chat', { replace: true, state: {} })} 
+            />
+          } />
+          <Route path="/rti" element={<RTIDrafting onNavigate={handleNavigate} caseId={navState.caseId} />} />
+          <Route path="/bail" element={<BailDrafting onNavigate={handleNavigate} caseId={navState.caseId} />} />
+          <Route path="/cases" element={<MyCases onNavigate={handleNavigate} />} />
+          <Route path="/resources" element={<Resources onNavigate={handleNavigate} />} />
+        </Routes>
       </main>
 
-      {/* Bottom Navigation for Mobile Only */}
-      {currentView !== 'landing' && !isLoading && currentView !== 'rti' && currentView !== 'chat' && (
+      {currentView !== 'landing' && currentView !== 'rti' && currentView !== 'chat' && (
         <nav className="bottom-nav">
           <button 
             className={`nav-item ${currentView === 'home' ? 'active' : ''}`}
-            onClick={() => handleNavigate('home')}
+            onClick={() => navigate('/home')}
           >
             <House size={20} />
             <span>Home</span>
@@ -185,7 +151,7 @@ function App() {
           
           <button 
             className={`nav-item ${currentView === 'cases' ? 'active' : ''}`}
-            onClick={() => handleNavigate('cases')}
+            onClick={() => navigate('/cases')}
           >
             <FolderOpen size={20} />
             <span>My Cases</span>
@@ -193,7 +159,7 @@ function App() {
 
           <button 
             className={`nav-item ${currentView === 'resources' ? 'active' : ''}`}
-            onClick={() => handleNavigate('resources')}
+            onClick={() => navigate('/resources')}
           >
             <Briefcase size={20} />
             <span>Resources</span>

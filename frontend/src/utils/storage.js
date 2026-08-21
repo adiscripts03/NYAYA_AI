@@ -1,90 +1,82 @@
-export const getCases = () => {
-  const cases = localStorage.getItem('nyaya_cases');
-  return cases ? JSON.parse(cases) : [];
-};
+const API_BASE = 'http://localhost:8000/api';
 
-export const saveCase = (newCase) => {
-  const cases = getCases();
-  // Find if exists
-  const index = cases.findIndex(c => c.id === newCase.id);
-  if (index >= 0) {
-    cases[index] = { ...cases[index], ...newCase, date: new Date().toISOString() };
-  } else {
-    // Add new, keep only last 3 as requested by user ("previous three cases")
-    cases.unshift({ ...newCase, date: new Date().toISOString() });
-    if (cases.length > 3) {
-      cases.pop();
-    }
+export const getCases = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/cases`);
+    return await res.json();
+  } catch (err) {
+    console.error("Error fetching cases", err);
+    return [];
   }
-  localStorage.setItem('nyaya_cases', JSON.stringify(cases));
 };
 
-export const getCase = (id) => {
-  const cases = getCases();
-  return cases.find(c => c.id === id);
+export const saveCase = async (newCase) => {
+  try {
+    const res = await fetch(`${API_BASE}/cases`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newCase)
+    });
+    return await res.json();
+  } catch (err) {
+    console.error("Error saving case", err);
+  }
+};
+
+export const getCase = async (id) => {
+  try {
+    const res = await fetch(`${API_BASE}/cases/${id}`);
+    return await res.json();
+  } catch (err) {
+    console.error("Error fetching case", err);
+    return null;
+  }
 };
 
 // ==========================================
 // Chat History Storage (separate from cases)
 // ==========================================
-const CHAT_HISTORY_KEY = 'nyaya_chat_history';
-const MAX_CHAT_SESSIONS = 50;
 
-export const getChatHistory = () => {
+export const getChatHistory = async () => {
   try {
-    const history = localStorage.getItem(CHAT_HISTORY_KEY);
-    return history ? JSON.parse(history) : [];
-  } catch {
+    const res = await fetch(`${API_BASE}/chat`);
+    return await res.json();
+  } catch (err) {
+    console.error("Error fetching chat history", err);
     return [];
   }
 };
 
-export const saveChatSession = (session) => {
-  const history = getChatHistory();
-  const index = history.findIndex(s => s.id === session.id);
-
-  const entry = {
-    ...session,
-    updatedAt: new Date().toISOString(),
-    createdAt: session.createdAt || new Date().toISOString(),
-  };
-
-  if (index >= 0) {
-    history[index] = entry;
-  } else {
-    history.unshift(entry);
-  }
-
-  // Prune to max sessions
-  while (history.length > MAX_CHAT_SESSIONS) {
-    history.pop();
-  }
-
+export const saveChatSession = async (session) => {
   try {
-    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
-  } catch (e) {
-    // If localStorage is full, remove oldest entries and retry
-    if (e.name === 'QuotaExceededError') {
-      while (history.length > 5) {
-        history.pop();
-        try {
-          localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
-          return;
-        } catch {
-          continue;
-        }
-      }
-    }
+    const res = await fetch(`${API_BASE}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(session)
+    });
+    return await res.json();
+  } catch (err) {
+    console.error("Error saving chat session", err);
   }
 };
 
-export const getChatSession = (id) => {
-  const history = getChatHistory();
-  return history.find(s => s.id === id);
+export const getChatSession = async (id) => {
+  try {
+    const res = await fetch(`${API_BASE}/chat/${id}`);
+    return await res.json();
+  } catch (err) {
+    console.error("Error fetching chat session", err);
+    return null;
+  }
 };
 
-export const deleteChatSession = (id) => {
-  const history = getChatHistory();
-  const filtered = history.filter(s => s.id !== id);
-  localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(filtered));
+export const deleteChatSession = async (id) => {
+  try {
+    const res = await fetch(`${API_BASE}/chat/${id}`, {
+      method: 'DELETE'
+    });
+    return await res.json();
+  } catch (err) {
+    console.error("Error deleting chat session", err);
+  }
 };

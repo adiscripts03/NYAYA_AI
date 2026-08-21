@@ -23,10 +23,13 @@ export default function Home({ onNavigate, userPersona }) {
   const [recentCase, setRecentCase] = useState(null);
 
   useEffect(() => {
-    const cases = getCases();
-    if (cases.length > 0) {
-      setRecentCase(cases[0]);
-    }
+    const fetchCases = async () => {
+      const cases = await getCases();
+      if (cases.length > 0) {
+        setRecentCase(cases[0]);
+      }
+    };
+    fetchCases();
   }, []);
 
   const formatTimeAgo = (dateStr) => {

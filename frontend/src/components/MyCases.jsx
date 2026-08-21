@@ -8,7 +8,11 @@ export default function MyCases({ onNavigate }) {
   const [cases, setCases] = useState([]);
 
   useEffect(() => {
-    setCases(getCases());
+    const fetchCases = async () => {
+      const data = await getCases();
+      setCases(data);
+    };
+    fetchCases();
   }, []);
 
   const formatTimeAgo = (dateStr) => {
