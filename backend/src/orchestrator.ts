@@ -48,6 +48,10 @@ export const LegalAgentState = Annotation.Root({
     reducer: (x, y) => y ?? x,
     default: () => ({}),
   }),
+  context_note: Annotation<string>({
+    reducer: (x, y) => y ?? x,
+    default: () => "",
+  }),
 });
 
 // Infer the type from Annotation
@@ -55,18 +59,77 @@ export type LegalAgentStateType = typeof LegalAgentState.State;
 
 // 2. Graph Nodes (The Agents)
 
-// TriageNode: Classifies the user_story into a specific legal category.
+// TriageNode: Classifies the user_story AND detects context switches.
 async function triageNode(state: LegalAgentStateType): Promise<Partial<LegalAgentStateType>> {
   console.log("--- TRIAGE NODE ---");
   
+  const triageSchema = z.object({
+    category: z.string().describe("The legal category: 'Criminal', 'Civil', 'Family', 'Property', 'Corporate', 'Labor', 'General_Chat', or 'Other'."),
+    is_context_switch: z.boolean().describe("True if the user's NEW message is about a COMPLETELY DIFFERENT legal issue than the conversation history. False if it's a follow-up to the same topic or there is no history.")
+  });
+
+  const hasHistory = state.history && state.history.length > 0;
+  const historySnippet = hasHistory
+    ? state.history.slice(-4).map((m: any) => `${m.role}: ${m.content?.substring(0, 100)}`).join('\n')
+    : "No prior conversation.";
+
   const prompt = ChatPromptTemplate.fromMessages([
-    ["system", "You are an expert Indian Legal routing assistant. Classify the user's story into one of the following categories: 'Criminal', 'Civil', 'Family', 'Property', 'Corporate', 'Labor', or 'Other'. Respond ONLY with the category name."],
+    ["system", `You are an expert Indian Legal routing assistant.
+
+Task 1: Classify the user's NEW message into one of: 'Criminal', 'Civil', 'Family', 'Property', 'Corporate', 'Labor', 'General_Chat' (greetings, casual talk), or 'Other'.
+
+Task 2: Determine if the user's NEW message is a CONTEXT SWITCH — meaning it describes a completely different legal problem from the conversation history.
+Examples of context switches: History is about a landlord dispute, new message is about domestic violence. History is about theft, new message is about divorce.
+Examples that are NOT context switches: History is about landlord, new message asks a follow-up about the landlord. No history at all.
+
+Recent Conversation History:
+{history_snippet}`],
+    ["human", "{user_story}"]
+  ]);
+
+  try {
+    const result = await callWithFallback(
+      prompt,
+      { user_story: state.user_story, history_snippet: historySnippet },
+      { structuredSchema: triageSchema, structuredName: "triage_classifier" }
+    );
+    
+    const category = result.category || "Other";
+    const isSwitch = result.is_context_switch || false;
+
+    if (isSwitch && hasHistory) {
+      console.log("  ⚡ Context switch detected! Keeping history but adding focus note.");
+      return { 
+        law_category: category, 
+        context_note: `IMPORTANT: The user has switched to a NEW legal issue (${category}). Their previous conversation was about a different topic. You MUST focus your response on the user's LATEST message. The old history is kept for reference but do NOT let it overshadow or confuse your response about the current issue.`
+      };
+    }
+
+    return { law_category: category, context_note: "" };
+  } catch (error: any) {
+    // Fallback: simple classification without structured output
+    console.error("Triage structured output failed, falling back to simple classification:", error.message);
+    const fallbackPrompt = ChatPromptTemplate.fromMessages([
+      ["system", "You are an expert Indian Legal routing assistant. Classify the user's story into one of: 'Criminal', 'Civil', 'Family', 'Property', 'Corporate', 'Labor', 'General_Chat', or 'Other'. Respond ONLY with the category name."],
+      ["human", "{user_story}"]
+    ]);
+    const response = await callWithFallback(fallbackPrompt, { user_story: state.user_story });
+    return { law_category: response.content.toString().trim(), context_note: "" };
+  }
+}
+
+// ConversationalNode: Handles basic greetings without legal processing.
+async function conversationalNode(state: LegalAgentStateType): Promise<Partial<LegalAgentStateType>> {
+  console.log("--- CONVERSATIONAL NODE ---");
+  
+  const prompt = ChatPromptTemplate.fromMessages([
+    ["system", "You are Nyaya, a friendly AI Indian legal assistant. The user just said a greeting or made casual conversation. Respond in a friendly, conversational manner. Let them know you are here to help with any legal issues or questions they might have. Keep it brief and human-like."],
     ["human", "{user_story}"]
   ]);
 
   const response = await callWithFallback(prompt, { user_story: state.user_story });
   
-  return { law_category: response.content.toString().trim() };
+  return { legal_advice: response.content.toString() };
 }
 
 // FactExtractorNode: Extracts entities into strict JSON.
@@ -82,7 +145,7 @@ async function factExtractorNode(state: LegalAgentStateType): Promise<Partial<Le
 
   try {
     const extractedFacts = await callWithFallback(
-      null, // no prompt template for structured output
+      null, 
       [
         new SystemMessage("You are an expert legal data extractor. Extract the key facts from the user's story into the required JSON structure."),
         new HumanMessage(state.user_story)
@@ -109,11 +172,9 @@ async function kanoonAPINode(state: LegalAgentStateType): Promise<Partial<LegalA
   }
 
   try {
-    // Construct search query from facts
     const query = `${state.key_facts.incident_type || ""} ${state.key_facts.core_issue_summary || ""}`.trim();
     const encodedQuery = encodeURIComponent(query);
     
-    // Indian Kanoon search endpoint
     const url = `https://api.indiankanoon.org/search/?formInput=${encodedQuery}`;
     
     const response = await fetch(url, {
@@ -129,14 +190,11 @@ async function kanoonAPINode(state: LegalAgentStateType): Promise<Partial<LegalA
     }
 
     const data = await response.json();
-    
-    // The Kanoon API typically returns results in a 'docs' array
     const docs = data.docs || [];
     
-    // Map top 3 results to a simpler structure to avoid overloading the LLM context window
     const api_results = docs.slice(0, 3).map((doc: any) => ({
       title: doc.title,
-      headline: doc.headline, // Contains highlighted snippet
+      headline: doc.headline, 
       docsource: doc.docsource
     }));
 
@@ -151,6 +209,10 @@ async function kanoonAPINode(state: LegalAgentStateType): Promise<Partial<LegalA
 async function legalAdvisorNode(state: LegalAgentStateType): Promise<Partial<LegalAgentStateType>> {
   console.log(`--- LEGAL ADVISOR NODE (Persona: ${state.persona}) ---`);
   
+  const contextNote = state.context_note 
+    ? `\n\n${state.context_note}` 
+    : "";
+
   const systemPrompt = state.persona === 'lawyer' 
     ? `You are an elite Indian Legal Expert assisting a fellow legal professional. Provide precise, highly technical legal analysis. Heavily cite specific statutes (BNS, BNSS, IPC, CrPC, etc.) and case precedents. Maintain a formal, academic, and professional tone.
     
@@ -162,7 +224,7 @@ Use the following context to inform your advice:
 Category: {law_category}
 Key Facts: {key_facts}
 Case Laws & Statutes (from API): {api_results}
-Conversation History: {history}`
+Conversation History: {history}${contextNote}`
     : `You are a compassionate and knowledgeable Indian Legal Advisor. Your goal is to explain the user's legal situation to them in simple, plain English that a layperson can understand. Avoid complex legalese. 
     
 IMPORTANT FORMATTING RULES:
@@ -174,7 +236,7 @@ Use the following context to inform your advice:
 Category: {law_category}
 Key Facts: {key_facts}
 Case Laws & Statutes (from API): {api_results}
-Conversation History: {history}`;
+Conversation History: {history}${contextNote}`;
 
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", systemPrompt],
@@ -196,21 +258,24 @@ Conversation History: {history}`;
 async function actionPlanNode(state: LegalAgentStateType): Promise<Partial<LegalAgentStateType>> {
   console.log(`--- ACTION PLAN NODE (Persona: ${state.persona}) ---`);
   
+  const contextNote = state.context_note
+    ? `\nCRITICAL: ${state.context_note} Base your action plan ONLY on the legal advice provided above (which already addresses the current issue).`
+    : "";
+
   const systemPrompt = state.persona === 'lawyer'
-    ? `You are an elite legal strategist. Based on the provided legal advice and conversation history, outline a highly professional legal strategy and procedural action plan (e.g., Drafting of SLP, Filing Anticipatory Bail under Sec 438 CrPC, Issuing Sec 138 NI Act notice). Keep it to 3 to 5 concrete bullet points. Maintain absolute legal precision.`
-    : `You are a legal strategist. Based on the provided legal advice and conversation history, create a highly actionable, step-by-step plan for the user. Keep it to 3 to 5 concrete bullet points. Be direct and clear.
+    ? `You are an elite legal strategist. Based on the provided legal advice, outline a highly professional legal strategy and procedural action plan (e.g., Drafting of SLP, Filing Anticipatory Bail under Sec 438 CrPC, Issuing Sec 138 NI Act notice). Keep it to 3 to 5 concrete bullet points. Maintain absolute legal precision.${contextNote}`
+    : `You are a legal strategist. Based on the provided legal advice, create a highly actionable, step-by-step plan for the user. Keep it to 3 to 5 concrete bullet points. Be direct and clear.
 
 IMPORTANT DIRECTIVE: You MUST provide exact URLs to relevant Indian government complaint portals where applicable. 
-CRITICAL: You must format all URLs as clickable markdown links, for example: [National Cyber Crime Portal](https://cybercrime.gov.in). Do not just output raw text URLs. Do not give generic advice like "file a complaint online" without giving the exact, clickable portal link.`;
+CRITICAL: You must format all URLs as clickable markdown links, for example: [National Cyber Crime Portal](https://cybercrime.gov.in). Do not just output raw text URLs. Do not give generic advice like "file a complaint online" without giving the exact, clickable portal link.${contextNote}`;
 
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", systemPrompt],
-    ["human", "Conversation History:\n{history}\n\nLegal Advice:\n{legal_advice}\n\nWhat should I do next?"]
+    ["human", "Legal Advice:\n{legal_advice}\n\nWhat should I do next?"]
   ]);
 
   const response = await callWithFallback(prompt, { 
-    legal_advice: state.legal_advice,
-    history: JSON.stringify(state.history, null, 2)
+    legal_advice: state.legal_advice
   });
 
   return { action_plan: response.content.toString() };
@@ -268,6 +333,14 @@ Be conservative on eligibility; when unsure, set needs_rti to false.`;
   }
 }
 
+// Conditional Edge Logic for Triage
+function routeFromTriage(state: LegalAgentStateType): string {
+  if (state.law_category.toLowerCase().includes("general_chat")) {
+    return "conversational";
+  }
+  return "factExtractor";
+}
+
 // Conditional Edge Logic for Fact Extractor Retry Loop
 function checkExtractionSuccess(state: LegalAgentStateType): string {
   if (state.errors.length > 0 && Object.keys(state.key_facts).length === 0) {
@@ -285,13 +358,22 @@ function checkExtractionSuccess(state: LegalAgentStateType): string {
 // 3. Graph Wiring
 const workflow = new StateGraph(LegalAgentState)
   .addNode("triage", triageNode)
+  .addNode("conversational", conversationalNode)
   .addNode("factExtractor", factExtractorNode)
   .addNode("kanoonApi", kanoonAPINode)
   .addNode("legalAdvisor", legalAdvisorNode)
   .addNode("actionPlan", actionPlanNode)
   .addNode("rtiAddon", rtiAddonNode)
   .addEdge(START, "triage")
-  .addEdge("triage", "factExtractor")
+  .addConditionalEdges(
+    "triage",
+    routeFromTriage,
+    {
+      conversational: "conversational",
+      factExtractor: "factExtractor"
+    }
+  )
+  .addEdge("conversational", END)
   .addConditionalEdges(
     "factExtractor",
     checkExtractionSuccess,
