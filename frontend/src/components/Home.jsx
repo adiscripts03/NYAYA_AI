@@ -1,17 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ArrowRight, House, Briefcase, FileText, Landmark, Scroll, Clock } from 'lucide-react';
+import { Search, ArrowRight, House, Briefcase, FileText, Landmark, ShieldAlert, Clock, AlertCircle, Book, Scale, Gavel, FileSignature } from 'lucide-react';
 import { getCases } from '../utils/storage';
 
-const CATEGORIES = [
+const CITIZEN_CATEGORIES = [
   { id: 'tenant', title: 'Tenant Rights', icon: House, greeting: "Hello! I specialize in Tenant Rights. Are you dealing with a security deposit issue, an eviction, or a lease dispute?" },
   { id: 'consumer', title: 'Consumer Complaints', icon: Search, greeting: "Hello! I can help you navigate consumer protection laws. What product, service, or seller are you having trouble with?" },
   { id: 'workplace', title: 'Workplace Issues', icon: Briefcase, greeting: "Hello! I'm here to assist with workplace rights. Are you facing problems with wrongful termination, unpaid wages, or harassment?" },
   { id: 'rti', title: 'RTI Applications', icon: FileText, greeting: "Hello! I can help you draft a Right to Information (RTI) application." },
-  { id: 'welfare', title: 'Welfare Schemes', icon: Landmark, greeting: "Hello! I can help you discover government welfare schemes. Could you tell me a bit about your demographic and financial situation?" },
-  { id: 'general', title: 'General Legal Advice', icon: Scroll, greeting: "Hello. I'm Nyaya AI. I can help you understand your rights and figure out your next steps. What situation are you dealing with today?" },
+  { id: 'harassment', title: 'Sexual Harassment / Abuse', icon: AlertCircle, greeting: "Hello. I'm here to support you in a safe space. I can provide information on your legal rights, workplace POSH laws, and protective measures regarding sexual harassment or abuse. How can I help you today?" },
+  { id: 'cybercrime', title: 'Cybercrime', icon: ShieldAlert, greeting: "Hello! I can help you understand your legal options regarding cybercrime. Are you dealing with online fraud, identity theft, or digital harassment?" },
 ];
 
-export default function Home({ onNavigate }) {
+const PRO_CATEGORIES = [
+  { id: 'caselaw', title: 'Case Law Research', icon: Book, greeting: "I am ready to assist with legal research. Please provide the issue, relevant statutes, or specific judgments you are looking to analyze." },
+  { id: 'bareacts', title: 'Statutes & Bare Acts', icon: Scale, greeting: "I can help lookup and interpret specific sections across the BNS, BNSS, BSA, IPC, CrPC, and other Indian statutes. What are you looking for?" },
+  { id: 'bail', title: 'Bail Application Drafting', icon: Gavel, greeting: "I can assist in drafting bail applications." },
+  { id: 'legalnotice', title: 'Legal Notice Drafting', icon: FileSignature, greeting: "Please provide the details for the legal notice, including the parties involved, the cause of action, and the specific demands." },
+];
+
+export default function Home({ onNavigate, userPersona }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [recentCase, setRecentCase] = useState(null);
 
@@ -66,14 +73,17 @@ export default function Home({ onNavigate }) {
 
       {/* Common Topics Grid */}
       <section className="home-topics-section">
-        <h3 className="home-section-title">Common Legal Topics</h3>
+        <h3 className="home-section-title">
+          {userPersona === 'lawyer' ? 'Professional Tools & Drafting' : 'Common Legal Topics'}
+        </h3>
         <div className="home-categories-grid">
-          {CATEGORIES.map((cat) => (
+          {(userPersona === 'lawyer' ? PRO_CATEGORIES : CITIZEN_CATEGORIES).map((cat) => (
             <div 
               key={cat.id} 
               className="home-category-card"
               onClick={() => {
                 if (cat.id === 'rti') onNavigate('rti');
+                else if (cat.id === 'bail') onNavigate('bail');
                 else onNavigate('chat', '', false, cat.greeting); // Empty query, no auto-send, custom greeting
               }}
             >

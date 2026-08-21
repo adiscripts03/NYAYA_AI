@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Briefcase, BookOpen, FileCheck, PhoneCall, Scale, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Briefcase, BookOpen, FileCheck, PhoneCall, Scale, ArrowRight, ShieldCheck, ExternalLink } from 'lucide-react';
 
 const LEGAL_TEMPLATES = [
   {
@@ -26,17 +26,26 @@ const GUIDES = [
   {
     title: 'Know Your Rights: Tenant & Landlord Law',
     summary: 'Key provisions under Model Tenancy Act & State Rent Control laws.',
-    tag: 'Housing'
+    tag: 'Housing',
+    link: 'https://mohua.gov.in/upload/uploadfiles/files/Model-Tenancy-Act-2021.pdf'
   },
   {
     title: 'Consumer Protection Act 2019 Guide',
     summary: 'E-commerce rights, refund policies, and filing process in NCH portal.',
-    tag: 'Consumer'
+    tag: 'Consumer',
+    link: 'https://consumerhelpline.gov.in/'
   },
   {
     title: 'Workplace Rights & Severance Guide',
     summary: 'Notice period terms, gratuity calculation, and unlawful termination remedies.',
-    tag: 'Labor'
+    tag: 'Labor',
+    link: 'https://labour.gov.in/'
+  },
+  {
+    title: 'Government Welfare Schemes Guide',
+    summary: 'Eligibility, documentation, and application procedures for state and central government welfare programs.',
+    tag: 'Welfare',
+    link: 'https://www.myscheme.gov.in/'
   }
 ];
 
@@ -109,13 +118,15 @@ export default function Resources({ onNavigate }) {
               <span className="resource-tag">{guide.tag}</span>
               <h3 className="resource-card-title" style={{ marginTop: '10px' }}>{guide.title}</h3>
               <p className="resource-card-desc">{guide.summary}</p>
-              <button 
+              <a 
                 className="btn-secondary" 
-                style={{ width: '100%', marginTop: '16px', fontSize: '0.9rem' }}
-                onClick={() => onNavigate('chat')}
+                style={{ width: '100%', marginTop: '16px', fontSize: '0.9rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
+                href={guide.link}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                Ask Assistant About This <Scale size={16} />
-              </button>
+                Read Official Guide <ExternalLink size={16} />
+              </a>
             </div>
           ))}
         </div>

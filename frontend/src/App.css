@@ -539,6 +539,11 @@
   mix-blend-mode: darken; 
 }
 
+body.dark-theme .themis-bg-image {
+  filter: invert(1);
+  mix-blend-mode: screen;
+}
+
 /* Subtle dark gradient overlay behind text */
 .themis-ambient-glow {
   position: absolute;
