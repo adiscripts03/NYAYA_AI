@@ -66,7 +66,7 @@ export default function BailDrafting({ onNavigate, caseId }) {
   const refineText = async (text) => {
     try {
       const authHeaders = await getAdviceAuthHeaders();
-      const response = await fetch("http://localhost:8000/api/refine-bail", {
+      const response = await fetch("http://localhost:8000/api/advice/refine-bail", {
         method: "POST",
         headers: authHeaders,
         body: JSON.stringify({ raw_text: text, form_data: formData })

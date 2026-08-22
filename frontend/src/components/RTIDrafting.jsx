@@ -62,7 +62,7 @@ export default function RTIDrafting({ onNavigate, caseId }) {
     setIsRefining(true);
     try {
       const authHeaders = await getAdviceAuthHeaders();
-      const response = await fetch("http://localhost:8000/api/refine-rti", {
+      const response = await fetch("http://localhost:8000/api/advice/refine-rti", {
         method: "POST",
         headers: authHeaders,
         body: JSON.stringify({ raw_text: formData.information })
