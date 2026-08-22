@@ -11,27 +11,27 @@ Nyaya AI relies on a modern, robust architecture separating the frontend client 
 ```mermaid
 graph TD
     subgraph Frontend [Client Layer]
-        UI[React Frontend (Vite)]
-        Router[React Router]
+        UI["React Frontend (Vite)"]
+        Router["React Router"]
     end
 
     subgraph Backend [API & Orchestration Layer]
-        API[Express.js / Node.js]
-        Graph[LangGraph Engine]
+        API["Express.js / Node.js"]
+        Graph["LangGraph Engine"]
         API <--> Graph
     end
 
     subgraph Data [Data & Auth Layer]
-        Auth[Supabase Auth]
-        DB[(PostgreSQL DB / Supabase)]
-        Cache[(Upstash Redis Cache)]
-        ORM[Prisma ORM]
+        Auth["Supabase Auth"]
+        DB[("PostgreSQL DB / Supabase")]
+        Cache[("Upstash Redis Cache")]
+        ORM["Prisma ORM"]
     end
 
     subgraph External [External Services]
-        LLM_Groq[Groq API / Llama 3]
-        LLM_Mistral[Mistral API]
-        Kanoon[Indian Kanoon API]
+        LLM_Groq["Groq API / Llama 3"]
+        LLM_Mistral["Mistral API"]
+        Kanoon["Indian Kanoon API"]
     end
 
     UI <-->|REST API / JWT| API
@@ -64,21 +64,21 @@ Nyaya AI isn't just a simple prompt wrapper. It uses a **Directed Acyclic Graph 
 
 ```mermaid
 graph TD
-    User([User Query]) --> Triage[Triage Agent]
+    User(["User Query"]) --> Triage["Triage Agent"]
     
-    Triage -->|General Chat| Conversational[Conversational Agent]
-    Conversational --> End([Final Response])
+    Triage -->|General Chat| Conversational["Conversational Agent"]
+    Conversational --> End(["Final Response"])
     
-    Triage -->|Legal Query| FactExtractor[Fact Extraction Agent]
+    Triage -->|Legal Query| FactExtractor["Fact Extraction Agent"]
     
     FactExtractor -->|Error| FactExtractor
-    FactExtractor -->|Success/Fallback| KanoonAPI[Kanoon API Agent]
+    FactExtractor -->|Success/Fallback| KanoonAPI["Kanoon API Agent"]
     
-    KanoonAPI -->|Precedents & Statutes| LegalAdvisor[Legal Advisor Agent]
-    LegalAdvisor --> ActionPlan[Action Plan Agent]
-    ActionPlan --> RTIAddon[RTI Drafting Addon]
+    KanoonAPI -->|Precedents & Statutes| LegalAdvisor["Legal Advisor Agent"]
+    LegalAdvisor --> ActionPlan["Action Plan Agent"]
+    ActionPlan --> RTIAddon["RTI Drafting Addon"]
     
-    RTIAddon --> FinalResponse([Final Formatted Response])
+    RTIAddon --> FinalResponse(["Final Formatted Response"])
 
     style Triage fill:#2F5A4E,stroke:#fff,stroke-width:2px,color:#fff
     style FactExtractor fill:#1F4B6E,stroke:#fff,stroke-width:2px,color:#fff
@@ -218,6 +218,30 @@ docker compose logs -f
 ```
 
 The frontend will be available at `http://localhost:5173` and the backend API at `http://localhost:8000`. Changes to your code will auto-reload via volume mounts.
+
+---
+
+## ☁️ Deployment
+
+Nyaya AI is designed to be easily deployed to modern cloud hosting platforms like Render and Vercel.
+
+### 1. Backend (Render)
+- **Host**: Render (Web Service)
+- **Environment**: Node.js
+- **Build Command**: `npm install && npm run build`
+- **Start Command**: `npm start` (or `node dist/index.js`)
+- **Important**: Render spins down free web services after 15 minutes of inactivity. To prevent cold starts, use a free service like **UptimeRobot** to ping the `/api/health` endpoint every 5 minutes.
+
+### 2. Frontend (Vercel)
+- **Host**: Vercel
+- **Framework**: Vite (React)
+- **Environment Variable**: Ensure you add `VITE_API_URL` pointing to your deployed backend URL (e.g., `https://nyaya-ai-backend.onrender.com`).
+- **Client-Side Routing**: The `vercel.json` file is included in the frontend directory to correctly rewrite all traffic to `index.html`, ensuring React Router works on refresh without 404 errors.
+
+### 3. Supabase Configuration
+When deploying, make sure to update your Supabase **Authentication -> URL Configuration**:
+- Set the **Site URL** to your live Vercel URL.
+- Add your local `http://localhost:5173` to the **Redirect URLs** so local development continues to work.
 
 ---
 
