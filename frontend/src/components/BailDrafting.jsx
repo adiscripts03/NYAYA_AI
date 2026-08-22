@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Download, CheckCircle, Copy, Sparkles, Loader2, Scale } from 'lucide-react';
 import { saveCase, getCase, getAdviceAuthHeaders } from '../utils/storage';
+import VoiceMicButton from './VoiceMicButton';
 
 export default function BailDrafting({ onNavigate, caseId }) {
   const [step, setStep] = useState(1);
@@ -15,6 +16,7 @@ export default function BailDrafting({ onNavigate, caseId }) {
   const [isRefining, setIsRefining] = useState(false);
   const [refinedText, setRefinedText] = useState('');
   const [currentCaseId, setCurrentCaseId] = useState(caseId || null);
+  const [interimGrounds, setInterimGrounds] = useState('');
 
   useEffect(() => {
     if (caseId) {
@@ -192,14 +194,33 @@ ${formData.grounds}`;
               <div className="rti-step">
                 <h3>Grounds for Bail</h3>
                 <p>Briefly describe the grounds for bail (e.g., false implication, no flight risk, parity, prolonged incarceration). The AI will refine these into formal legal language.</p>
-                <textarea 
-                  className="input-field" 
-                  style={{ minHeight: '150px', resize: 'vertical' }}
-                  name="grounds"
-                  placeholder="Type the raw facts and grounds..."
-                  value={formData.grounds}
-                  onChange={handleChange}
-                />
+                <div className="voice-textarea-wrapper">
+                  {interimGrounds && (
+                    <div className="voice-interim-badge">🎤 {interimGrounds}</div>
+                  )}
+                  <div className="voice-label-row">
+                    <label style={{ fontWeight: '500' }}>Grounds (speak or type)</label>
+                    <VoiceMicButton
+                      className="mic-btn--sm"
+                      onInterim={(text) => setInterimGrounds(text)}
+                      onFinal={(text) => {
+                        setInterimGrounds('');
+                        setFormData(prev => ({
+                          ...prev,
+                          grounds: prev.grounds.trim() ? prev.grounds + ' ' + text : text
+                        }));
+                      }}
+                    />
+                  </div>
+                  <textarea 
+                    className="input-field" 
+                    style={{ minHeight: '150px', resize: 'vertical' }}
+                    name="grounds"
+                    placeholder="Type the raw facts and grounds..."
+                    value={formData.grounds}
+                    onChange={handleChange}
+                  />
+                </div>
               </div>
             )}
 

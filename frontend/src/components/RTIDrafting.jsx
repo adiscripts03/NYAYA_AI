@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Download, CheckCircle, Copy, ExternalLink, Sparkles, Loader2 } from 'lucide-react';
 import { saveCase, getCase, getAdviceAuthHeaders } from '../utils/storage';
+import VoiceMicButton from './VoiceMicButton';
 
 export default function RTIDrafting({ onNavigate, caseId }) {
   const [step, setStep] = useState(1);
@@ -13,6 +14,7 @@ export default function RTIDrafting({ onNavigate, caseId }) {
   const [isFinalized, setIsFinalized] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
   const [currentCaseId, setCurrentCaseId] = useState(caseId || null);
+  const [interimInfo, setInterimInfo] = useState('');
 
   useEffect(() => {
     if (caseId) {
@@ -151,25 +153,43 @@ export default function RTIDrafting({ onNavigate, caseId }) {
                 <p>What exactly do you want to know? Try to be as specific as possible.</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
-                      <label style={{ fontWeight: '500' }}>Your Request (Raw format is fine)</label>
-                      <button 
-                        className="btn-secondary" 
-                        style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: (isRefining || !formData.information.trim()) ? 'not-allowed' : 'pointer' }}
-                        onClick={handleRefine}
-                        disabled={isRefining || !formData.information.trim()}
-                      >
-                        {isRefining ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} style={{ color: 'var(--color-primary)' }} />} 
-                        {isRefining ? 'Refining...' : 'Refine with AI'}
-                      </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', gap: '8px' }}>
+                      <label style={{ fontWeight: '500', flex: 1 }}>Your Request (speak or type)</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <VoiceMicButton
+                          className="mic-btn--sm"
+                          onInterim={(text) => setInterimInfo(text)}
+                          onFinal={(text) => {
+                            setInterimInfo('');
+                            setFormData(prev => ({
+                              ...prev,
+                              information: prev.information.trim() ? prev.information + ' ' + text : text
+                            }));
+                          }}
+                        />
+                        <button 
+                          className="btn-secondary" 
+                          style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: (isRefining || !formData.information.trim()) ? 'not-allowed' : 'pointer' }}
+                          onClick={handleRefine}
+                          disabled={isRefining || !formData.information.trim()}
+                        >
+                          {isRefining ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} style={{ color: 'var(--color-primary)' }} />} 
+                          {isRefining ? 'Refining...' : 'Refine with AI'}
+                        </button>
+                      </div>
                     </div>
-                    <textarea 
-                      className="input-field" 
-                      placeholder="e.g., THE EXPENDITURE OF THE YEAR 2026-27"
-                      rows={6}
-                      value={formData.information}
-                      onChange={(e) => setFormData({...formData, information: e.target.value})}
-                    />
+                    <div className="voice-textarea-wrapper">
+                      {interimInfo && (
+                        <div className="voice-interim-badge">🎤 {interimInfo}</div>
+                      )}
+                      <textarea 
+                        className="input-field" 
+                        placeholder="e.g., THE EXPENDITURE OF THE YEAR 2026-27"
+                        rows={6}
+                        value={formData.information}
+                        onChange={(e) => setFormData({...formData, information: e.target.value})}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

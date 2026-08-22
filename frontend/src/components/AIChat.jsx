@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, FileText, Info, ArrowLeft, Plus, History, MessageSquare, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { saveCase, getCase, getChatHistory, saveChatSession, getChatSession, deleteChatSession, getAdviceAuthHeaders } from '../utils/storage';
+import VoiceMicButton from './VoiceMicButton';
 
 const INITIAL_MESSAGES = [
   {
@@ -37,6 +38,7 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
 
   const [messages, setMessages] = useState([customInitialMessage]);
   const [input, setInput] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [currentCaseId, setCurrentCaseId] = useState(caseId || null);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
@@ -338,7 +340,12 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
           <div ref={messagesEndRef} />
         </div>
         
-        <div className="chat-input-area">
+        <div className="chat-input-area" style={{ position: 'relative' }}>
+          {interimTranscript && (
+            <div className="voice-interim-badge">
+              🎤 {interimTranscript}
+            </div>
+          )}
           <textarea 
             placeholder="Type your message here in plain language..." 
             rows={2}
@@ -349,6 +356,13 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
                 e.preventDefault();
                 handleSend();
               }
+            }}
+          />
+          <VoiceMicButton
+            onInterim={(text) => setInterimTranscript(text)}
+            onFinal={(text) => {
+              setInterimTranscript('');
+              setInput((prev) => (prev.trim() ? prev + ' ' + text : text));
             }}
           />
           <button className="send-btn" onClick={handleSend}>

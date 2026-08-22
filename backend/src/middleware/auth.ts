@@ -60,7 +60,15 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     
     next();
   } catch (error: any) {
-    console.error("Auth Verification Error:", error.message);
-    res.status(500).json({ error: "Internal server error during authentication" });
+    // A fetch() network error means we couldn't reach Supabase to verify the token.
+    // This is functionally equivalent to an invalid token from the client's perspective.
+    const isNetworkError = error?.name === 'TypeError' || error?.cause?.code === 'ECONNREFUSED';
+    if (isNetworkError) {
+      console.error("Auth: Could not reach Supabase for token verification:", error.message);
+      res.status(503).json({ error: "Authentication service temporarily unavailable" });
+    } else {
+      console.error("Auth Verification Error:", error.message);
+      res.status(500).json({ error: "Internal server error during authentication" });
+    }
   }
 };

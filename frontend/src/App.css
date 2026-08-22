@@ -1906,3 +1906,176 @@ body.dark-theme .themis-bg-image {
     font-size: 1.5rem;
   }
 }
+
+/* =========================================
+   VOICE INPUT — MIC BUTTON
+   ========================================= */
+
+/* Base mic button */
+.mic-btn {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: visible;
+}
+
+.mic-btn:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* Active / listening state */
+.mic-btn--active {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5);
+  animation: micGlow 1.6s ease-in-out infinite;
+}
+
+.mic-btn--active:hover {
+  background: #b91c1c;
+  color: #ffffff;
+  border-color: #b91c1c;
+}
+
+/* Pulsing ring that radiates outward when recording */
+.mic-pulse-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(220, 38, 38, 0.6);
+  animation: micRingExpand 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes micRingExpand {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  100% { transform: scale(1.9); opacity: 0;   }
+}
+
+@keyframes micGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5); }
+  50%       { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+}
+
+/* Interim transcript floating badge above the textarea */
+.voice-interim-badge {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: rgba(220, 38, 38, 0.07);
+  border: 1px solid rgba(220, 38, 38, 0.22);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  pointer-events: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 80px;
+  overflow: hidden;
+  animation: fadeSlideUp 0.2s ease;
+  z-index: 5;
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Wrapper used in RTI/Bail textarea rows so the badge can be relative-positioned */
+.voice-textarea-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mic button placed inline beside a textarea label row */
+.voice-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.voice-label-row label {
+  font-weight: 500;
+  flex: 1;
+}
+
+/* Slightly smaller mic for form fields (not the main chat bar) */
+.mic-btn--sm {
+  width: 36px;
+  height: 36px;
+}
+
+.mic-btn--sm svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Downloading and transcribing states */
+.mic-btn--downloading {
+  background: var(--color-bg-secondary);
+  color: var(--color-secondary);
+  border-color: var(--color-secondary);
+  cursor: not-allowed;
+}
+
+.mic-btn--transcribing {
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  cursor: not-allowed;
+}
+
+.spin-slow {
+  animation: spin 3s linear infinite;
+}
+
+/* Error toast shown when SpeechRecognition fails (network, permission, etc.) */
+.mic-error-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1e1e1e;
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  font-size: 0.88rem;
+  max-width: 380px;
+  text-align: center;
+  z-index: 9999;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  animation: fadeSlideUp 0.25s ease;
+}
+
+@media (min-width: 768px) {
+  .mic-error-toast {
+    bottom: 40px;
+  }
+}
+
+
+
