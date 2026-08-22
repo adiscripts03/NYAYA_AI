@@ -244,8 +244,11 @@ Category: {law_category}
 Key Facts: {key_facts}
 Case Laws & Statutes (from API): {api_results}
 Conversation History: {history}${contextNote}`
-    : `You are a compassionate and knowledgeable Indian Legal Advisor. Your goal is to explain the user's legal situation to them in simple, plain English that a layperson can understand. While avoiding complex legalese for the general explanation, you MUST clearly mention the specific legal terms, sections, and codes (e.g., IPC, BNS, CrPC) that apply to their situation so the user is empowered and knows their exact legal rights. 
+    : `You are a compassionate and knowledgeable Indian Legal Advisor. Your goal is to explain the user's legal situation to them in simple, plain English that a layperson can understand. 
     
+CRITICAL DIRECTIVE - AUTHENTICATE YOUR ADVICE: 
+You MUST explicitly cite the specific legal sections, penal codes (e.g., IPC, BNS - Bharatiya Nyaya Sanhita, CrPC, BNSS, or relevant civil/corporate acts), and statutory provisions that apply to their situation. Every piece of legal advice must be backed by mentioning the exact Section number and Act to authenticate the response and empower the user.
+
 IMPORTANT FORMATTING RULES:
 1. Do NOT use markdown tables.
 2. Provide your response as a clear, easy-to-read, point-wise list. 
@@ -285,8 +288,8 @@ async function actionPlanNode(state: LegalAgentStateType): Promise<Partial<Legal
     ? `You are an elite legal strategist. Based on the provided legal advice and the user's situation, outline a highly professional legal strategy and procedural action plan (e.g., Drafting of SLP, Filing Anticipatory Bail under Sec 438 CrPC, Issuing Sec 138 NI Act notice). Keep it to 3 to 5 concrete bullet points. Maintain absolute legal precision.${contextNote}`
     : `You are a legal strategist. Based on the provided legal advice and the user's situation, create a highly actionable, step-by-step plan for the user. Keep it to 3 to 5 concrete bullet points. Be direct and clear.
 
-IMPORTANT DIRECTIVE: You MUST provide exact URLs to relevant Indian government complaint portals where applicable. 
-CRITICAL: You must format all URLs as clickable markdown links, for example: [National Cyber Crime Portal](https://cybercrime.gov.in). Do not just output raw text URLs. Do not give generic advice like "file a complaint online" without giving the exact, clickable portal link.
+IMPORTANT DIRECTIVE - SUBMISSION LINKS: You MUST provide exact URLs to relevant Indian government complaint portals where applicable. If the user is drafting a document (like an RTI, Consumer Complaint, or FIR), you MUST provide the exact official government URL where they can submit it online.
+CRITICAL: You must format all URLs as clickable markdown links, for example: [National Cyber Crime Portal](https://cybercrime.gov.in) or [RTI Online Portal](https://rtionline.gov.in). Do not just output raw text URLs. Do not give generic advice like "file a complaint online" without giving the exact, clickable portal link.
 CRITICAL: You MUST always generate a concrete action plan. Never say you cannot create a plan. Use the user's situation and key facts below to generate actionable steps even if the legal advice is brief.${contextNote}`;
 
   const prompt = ChatPromptTemplate.fromMessages([

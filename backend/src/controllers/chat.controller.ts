@@ -53,7 +53,7 @@ export const saveChatSession = async (req: Request, res: Response): Promise<void
   try {
     const session = req.body;
     const userId = req.user?.id || null;
-    
+
     // UPSERT session
     const savedSession = await prisma.chatSession.upsert({
       where: { id: session.id },
@@ -72,7 +72,7 @@ export const saveChatSession = async (req: Request, res: Response): Promise<void
     // To handle messages efficiently, we will delete existing and insert new (simple sync for now)
     if (session.messages && Array.isArray(session.messages)) {
       await prisma.message.deleteMany({ where: { sessionId: session.id } });
-      
+
       await prisma.message.createMany({
         data: session.messages.map((m: any) => ({
           id: m.id.toString().startsWith(session.id) ? m.id.toString() : `${session.id}-${m.id}`,
@@ -96,7 +96,7 @@ export const deleteChatSession = async (req: Request, res: Response): Promise<vo
   try {
     const { id } = req.params;
     const userId = req.user?.id;
-    
+
     // Verify ownership before deleting
     if (userId) {
       const session = await prisma.chatSession.findUnique({ where: { id } });
@@ -105,7 +105,7 @@ export const deleteChatSession = async (req: Request, res: Response): Promise<vo
         return;
       }
     }
-    
+
     await prisma.chatSession.delete({ where: { id } });
     res.json({ success: true });
   } catch (error: any) {

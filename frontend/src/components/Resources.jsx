@@ -1,24 +1,30 @@
 import React, { useState } from 'react';
-import { Briefcase, BookOpen, FileCheck, PhoneCall, Scale, ArrowRight, ShieldCheck, ExternalLink } from 'lucide-react';
+import { Briefcase, BookOpen, FileCheck, PhoneCall, Scale, ArrowRight, ShieldCheck, ExternalLink, X } from 'lucide-react';
 
-const LEGAL_TEMPLATES = [
+const INTERACTIVE_TOOLS = [
   {
-    id: 'tmpl-1',
-    title: 'RTI Application Form (Sec 6(1))',
-    desc: 'Standard template for requesting public information from central & state departments.',
-    actionTarget: 'rti'
+    id: 'tool-1',
+    title: 'Rights Navigator',
+    desc: 'Interactive guide to discover your fundamental and statutory rights based on your situation.',
+    actionTarget: 'chat',
+    query: '',
+    greeting: "Welcome to the Rights Navigator! Briefly describe the situation or issue you're facing, and I will help identify your legal rights."
   },
   {
-    id: 'tmpl-2',
-    title: 'Security Deposit Legal Notice',
-    desc: 'Formal demand notice under Rent Control guidelines for non-refund of tenant deposit.',
-    actionTarget: 'chat'
+    id: 'tool-2',
+    title: 'Scheme Eligibility Reader',
+    desc: 'Check your eligibility for various state and central government welfare schemes.',
+    actionTarget: 'chat',
+    query: 'I want to check my eligibility for government welfare schemes.',
+    greeting: "I can help you check your eligibility for government schemes. To start, could you share a bit about your demographics (e.g., age, occupation, state)?"
   },
   {
-    id: 'tmpl-3',
-    title: 'Consumer Redressal Complaint Draft',
-    desc: 'Template for filing grievance regarding defective products or deficient service.',
-    actionTarget: 'chat'
+    id: 'tool-3',
+    title: 'Conversational Form-Filler',
+    desc: 'Draft legal notices, RTI applications, and complaints through a simple guided conversation.',
+    actionTarget: 'chat',
+    query: '',
+    greeting: "Welcome to the Conversational Form-Filler! What type of document do you need to draft? (e.g., RTI Application, Legal Notice, Consumer Complaint)"
   }
 ];
 
@@ -57,6 +63,38 @@ const HELPLINES = [
 
 export default function Resources({ onNavigate }) {
   const [activeTab, setActiveTab] = useState('templates');
+  const [expandedCardId, setExpandedCardId] = useState(null);
+  const [schemeData, setSchemeData] = useState({
+    age: '',
+    gender: 'Male',
+    state: '',
+    occupation: 'Student',
+    income: ''
+  });
+  const [formData, setFormData] = useState({
+    docType: 'Legal Notice',
+    sender: '',
+    recipient: '',
+    issue: ''
+  });
+
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    const query = `I need to draft a ${formData.docType}. My name/party name is ${formData.sender}. The recipient/opposite party is ${formData.recipient}. The brief issue is: ${formData.issue}. Please help me draft this document.`;
+    
+    const tool = INTERACTIVE_TOOLS.find(t => t.id === 'tool-3');
+    setExpandedCardId(null);
+    onNavigate(tool.actionTarget, query, false, tool.greeting);
+  };
+
+  const handleSchemeSubmit = (e) => {
+    e.preventDefault();
+    const query = `I am a ${schemeData.age} year old ${schemeData.gender} ${schemeData.occupation} living in ${schemeData.state} with an annual income of ₹${schemeData.income || 'Not specified'}. Please analyze what central and state government welfare schemes I am eligible for and tell me how to apply.`;
+    
+    const tool = INTERACTIVE_TOOLS.find(t => t.id === 'tool-2');
+    setExpandedCardId(null);
+    onNavigate(tool.actionTarget, query, false, tool.greeting);
+  };
 
   return (
     <div className="resources-container">
@@ -74,7 +112,7 @@ export default function Resources({ onNavigate }) {
           className={`resource-tab ${activeTab === 'templates' ? 'active' : ''}`}
           onClick={() => setActiveTab('templates')}
         >
-          <FileCheck size={18} /> Templates & Forms
+          <FileCheck size={18} /> Interactive Tools
         </button>
         <button 
           className={`resource-tab ${activeTab === 'guides' ? 'active' : ''}`}
@@ -92,20 +130,111 @@ export default function Resources({ onNavigate }) {
 
       {activeTab === 'templates' && (
         <div className="resources-grid">
-          {LEGAL_TEMPLATES.map((tmpl) => (
-            <div key={tmpl.id} className="resource-card">
-              <div className="resource-card-icon">
-                <FileCheck size={24} />
-              </div>
-              <h3 className="resource-card-title">{tmpl.title}</h3>
-              <p className="resource-card-desc">{tmpl.desc}</p>
-              <button 
-                className="btn-primary" 
-                style={{ width: '100%', marginTop: '16px', fontSize: '0.9rem' }}
-                onClick={() => onNavigate(tmpl.actionTarget)}
-              >
-                Use Template <ArrowRight size={16} />
-              </button>
+          {INTERACTIVE_TOOLS.map((tool) => (
+            <div key={tool.id} className="resource-card" style={expandedCardId === tool.id ? { width: '100%' } : {}}>
+              {expandedCardId === tool.id ? (
+                <div style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h3 className="resource-card-title" style={{ margin: 0 }}>{tool.id === 'tool-2' ? 'Check Eligibility Data' : 'Draft Document'}</h3>
+                    <button onClick={() => setExpandedCardId(null)} style={{ background: 'none', border: 'none', color: 'var(--color-text-light)', cursor: 'pointer' }}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  {tool.id === 'tool-2' ? (
+                    <form onSubmit={handleSchemeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-light)' }}>Age</label>
+                          <input required type="number" value={schemeData.age} onChange={e => setSchemeData({...schemeData, age: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-light)' }}>Gender</label>
+                          <select value={schemeData.gender} onChange={e => setSchemeData({...schemeData, gender: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
+                            <option>Male</option>
+                            <option>Female</option>
+                            <option>Other</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-light)' }}>State</label>
+                          <input required type="text" placeholder="State" value={schemeData.state} onChange={e => setSchemeData({...schemeData, state: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-light)' }}>Occupation</label>
+                          <select value={schemeData.occupation} onChange={e => setSchemeData({...schemeData, occupation: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
+                            <option>Student</option>
+                            <option>Farmer</option>
+                            <option>Salaried</option>
+                            <option>Business</option>
+                            <option>Unemployed</option>
+                            <option>Senior</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-light)' }}>Annual Income (₹) (Optional)</label>
+                        <select value={schemeData.income} onChange={e => setSchemeData({...schemeData, income: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
+                          <option value="">Select Income Bracket</option>
+                          <option value="Below ₹1 Lakh">Below ₹1 Lakh</option>
+                          <option value="₹1 Lakh - ₹3 Lakhs">₹1 Lakh - ₹3 Lakhs</option>
+                          <option value="₹3 Lakhs - ₹5 Lakhs">₹3 Lakhs - ₹5 Lakhs</option>
+                          <option value="₹5 Lakhs - ₹8 Lakhs">₹5 Lakhs - ₹8 Lakhs</option>
+                          <option value="Above ₹8 Lakhs">Above ₹8 Lakhs</option>
+                        </select>
+                      </div>
+                      <button type="submit" className="btn-primary" style={{ marginTop: '8px', width: '100%' }}>Check Eligibility</button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-light)' }}>Document Type</label>
+                        <select value={formData.docType} onChange={e => setFormData({...formData, docType: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
+                          <option>Legal Notice</option>
+                          <option>RTI Application</option>
+                          <option>Consumer Complaint</option>
+                          <option>Other Document</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-light)' }}>Your Name / Party</label>
+                        <input required type="text" placeholder="e.g. Rahul Sharma" value={formData.sender} onChange={e => setFormData({...formData, sender: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-light)' }}>Recipient / Opposite Party</label>
+                        <input required type="text" placeholder="e.g. ABC Electronics" value={formData.recipient} onChange={e => setFormData({...formData, recipient: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-light)' }}>Brief Issue / Description</label>
+                        <textarea required placeholder="e.g. Bought a laptop that broke in 2 days..." value={formData.issue} onChange={e => setFormData({...formData, issue: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)', color: 'var(--color-text)', minHeight: '60px', resize: 'vertical' }} />
+                      </div>
+                      <button type="submit" className="btn-primary" style={{ marginTop: '8px', width: '100%' }}>Draft Document</button>
+                    </form>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="resource-card-icon">
+                    <FileCheck size={24} />
+                  </div>
+                  <h3 className="resource-card-title">{tool.title}</h3>
+                  <p className="resource-card-desc">{tool.desc}</p>
+                  <button 
+                    className="btn-primary" 
+                    style={{ width: '100%', marginTop: '16px', fontSize: '0.9rem' }}
+                    onClick={() => {
+                      if (tool.id === 'tool-2' || tool.id === 'tool-3') {
+                        setExpandedCardId(tool.id);
+                      } else {
+                        onNavigate(tool.actionTarget, tool.query, false, tool.greeting);
+                      }
+                    }}
+                  >
+                    Use Tool <ArrowRight size={16} />
+                  </button>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -146,6 +275,7 @@ export default function Resources({ onNavigate }) {
           ))}
         </div>
       )}
+
     </div>
   );
 }
