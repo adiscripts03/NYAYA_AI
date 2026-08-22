@@ -1,22 +1,48 @@
 # ⚖️ Nyaya AI
 
-Nyaya AI is an intelligent, agentic legal assistant designed to help Indian citizens navigate their legal rights, draft official documents, and get actionable legal advice. Powered by **LangGraph** and an advanced multi-agent architecture, Nyaya AI breaks down complex situations into plain, easy-to-understand guidance.
+Nyaya AI is an intelligent, agentic legal assistant designed to help Indian citizens and legal professionals navigate their legal rights, draft official documents, and get actionable legal advice. Powered by **LangGraph** and a highly secure multi-tenant architecture, Nyaya AI breaks down complex situations into plain, easy-to-understand guidance.
 
 ---
 
 ## ✨ Features
 
-- **Multi-Agent Legal Chatbot**: A state-of-the-art conversational AI that maintains memory across chats. It automatically analyzes your story, extracts facts, searches legal databases, and generates a structured action plan.
-- **RTI Drafting Wizard**: A step-by-step wizard to file Right to Information (RTI) applications.
-- **✨ Refine with AI**: Type a messy, raw request into the RTI drafter and let the AI instantly rewrite it into a highly formal, specific, and legally sound numbered list.
-- **Contextual Prompt Starters**: Jump right into specific topics (Tenant Rights, Consumer Complaints, etc.) with pre-configured, context-aware AI greetings.
-- **Beautiful UI**: A clean, spacious, glassmorphic frontend built with React, featuring full Markdown support for beautiful, clickable legal citations.
+- **Multi-Agent Legal Chatbot**: A state-of-the-art conversational AI that maintains memory across chats. It automatically analyzes your story, extracts facts, searches legal databases, and generates structured action plans.
+- **Dual Personas (Citizen vs. Lawyer)**: Switch seamlessly between plain-English citizen advice and highly technical legal language complete with IPC/BNS sections and case law citations.
+- **Secure Authentication**: Built with Supabase Auth, supporting Email/Password, Email OTPs, and Google OAuth.
+- **Data Privacy & Multi-Tenancy**: Every chat session and drafted document is securely isolated to the authenticated user via Prisma and PostgreSQL.
+- **Document Drafting Wizards**: 
+  - **RTI Drafter**: Step-by-step wizard to file Right to Information applications.
+  - **Bail Drafter**: Generate formal bail applications with AI-assisted factual refinement.
+- **✨ Refine with AI**: Type a messy, raw request into the drafters and let the AI instantly rewrite it into a highly formal, specific, and legally sound document.
+- **Beautiful UI**: A clean, spacious, glassmorphic frontend built with React, featuring full Markdown support, dark/light modes, and dynamic routing.
 
 ---
 
-## 🧠 Multi-Agent Architecture (LangGraph)
+## 🧠 Architecture Overview
 
-Nyaya AI isn't just a simple prompt wrapper. It uses a **Directed Acyclic Graph (DAG)** to route your legal query through specialized AI agents, ensuring high-quality, verified advice. 
+Nyaya AI uses a modern, separated frontend/backend architecture with an advanced AI orchestration layer.
+
+### System Architecture
+
+```mermaid
+graph TD
+    Client[React Frontend] -->|REST API / JWT| Backend[Node.js / Express Backend]
+    
+    Backend -->|Auth Verification| SupabaseAuth[Supabase Auth Server]
+    Backend -->|Queries| Prisma[Prisma ORM]
+    Prisma -->|PostgreSQL| SupabaseDB[(Supabase DB)]
+    Backend -->|Session Caching| Redis[(Upstash Redis)]
+    
+    Backend -->|LLM Orchestration| LangGraph[LangGraph Engine]
+    
+    LangGraph -->|LLM Inference| Groq[Groq API / Llama 3]
+    LangGraph -->|LLM Fallback| Mistral[Mistral API]
+    LangGraph -->|Legal Research| Kanoon[Indian Kanoon API]
+```
+
+### Multi-Agent Workflow (LangGraph)
+
+Nyaya AI isn't just a simple prompt wrapper. It uses a **Directed Acyclic Graph (DAG)** to route your legal query through specialized AI agents, ensuring high-quality, verified advice.
 
 ```mermaid
 graph TD
@@ -37,11 +63,11 @@ graph TD
     style ActionPlan fill:#C86650,stroke:#fff,stroke-width:2px,color:#fff
 ```
 
-### Agent Roles:
+#### Agent Roles:
 1. **Triage Agent**: Determines the category of law (e.g., Civil, Criminal, Corporate).
 2. **Fact Extractor**: Strips away emotion and pulls out the hard legal facts, parties involved, and timelines.
-3. **Kanoon API Agent**: (Mocked/Integrated) Searches the Indian Kanoon database for relevant case law and statutes.
-4. **Legal Advisor**: Synthesizes the facts and precedents into plain-English advice.
+3. **Kanoon API Agent**: Searches the Indian Kanoon database for relevant case law and statutes.
+4. **Legal Advisor**: Synthesizes the facts and precedents into targeted advice (adapting tone based on the active persona).
 5. **Action Plan Agent**: Converts the advice into a strict, bulleted, actionable step-by-step plan with official government portal links.
 
 ---
@@ -50,9 +76,14 @@ graph TD
 
 ### Prerequisites
 - Node.js (v18+)
-- A [Groq API Key](https://console.groq.com/) for fast LLM inference.
+- A [Supabase](https://supabase.com) Account (for Auth and PostgreSQL)
+- An [Upstash](https://upstash.com/) Account (for Redis)
+- A [Groq API Key](https://console.groq.com/) and [Mistral API Key](https://console.mistral.ai/)
+
+---
 
 ### 1. Backend Setup
+
 Navigate to the `backend` directory, install dependencies, and configure your environment.
 
 ```bash
@@ -61,10 +92,44 @@ npm install
 ```
 
 Create a `.env` file in the `backend` folder with the following variables:
+
 ```env
-GROQ_API_KEY=your_groq_api_key_here
-KANOON_API_TOKEN=your_kanoon_token_here
+# -----------------------------
+# SUPABASE & DATABASE CONFIG
+# -----------------------------
+SUPABASE_URL="https://your-project-ref.supabase.co"
+SUPABASE_ANON_KEY="your-anon-key"
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+
+# Transaction connection pooler string
+DATABASE_URL="postgresql://postgres.xxx:password@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+# Session connection string (for Prisma migrations)
+DIRECT_URL="postgresql://postgres.xxx:password@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres"
+
+# -----------------------------
+# REDIS CACHE
+# -----------------------------
+REDIS_URL="rediss://default:your_upstash_password@your-upstash-url.upstash.io:6379"
+
+# -----------------------------
+# AI & EXTERNAL APIS
+# -----------------------------
+GROQ_API_KEY="gsk_your_groq_key"
+MISTRAL_API_KEY="your_mistral_key"
+KANOON_API_TOKEN="your_kanoon_api_token"
+TAVILY_API_KEY="tvly-your_tavily_key"
+
+# -----------------------------
+# APP CONFIG
+# -----------------------------
+FRONTEND_URL="http://localhost:5173"
 BACKEND_PORT=8000
+```
+
+Sync the Prisma schema to your database and generate the client:
+```bash
+npx prisma db push
+npx prisma generate
 ```
 
 Start the backend development server:
@@ -73,12 +138,22 @@ npm run dev
 ```
 *(The backend runs on `http://localhost:8000`)*
 
+---
+
 ### 2. Frontend Setup
+
 Open a new terminal, navigate to the `frontend` directory, and install dependencies.
 
 ```bash
 cd frontend
 npm install
+```
+
+Create a `.env` file in the `frontend` folder with your public Supabase credentials:
+
+```env
+VITE_SUPABASE_URL="https://your-project-ref.supabase.co"
+VITE_SUPABASE_ANON_KEY="your-anon-key"
 ```
 
 Start the React frontend:
@@ -91,9 +166,12 @@ npm run dev
 
 ## 🛠 Tech Stack
 
-- **Frontend**: React, Vite, Lucide Icons, React-Markdown, Vanilla CSS (Custom Design System).
-- **Backend**: Node.js, Express, TypeScript, `tsx`.
-- **AI & Orchestration**: LangChain, LangGraph (`@langchain/langgraph`), Groq API (`openai/gpt-oss-20b`).
+- **Frontend**: React, Vite, React Router, Lucide Icons, React-Markdown, Vanilla CSS (Glassmorphism & Custom Design System).
+- **Backend**: Node.js, Express, TypeScript, `tsx`, Prisma ORM.
+- **Database & Auth**: PostgreSQL (Supabase), Supabase Auth (ES256 JWKS validation).
+- **Caching**: Redis (Upstash).
+- **AI Orchestration**: LangChain, LangGraph (`@langchain/langgraph`).
+- **LLM Providers**: Groq (Llama 3 / OSS Models), Mistral (Fallback).
 
 ---
 
