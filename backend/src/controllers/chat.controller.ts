@@ -3,7 +3,9 @@ import prisma from "../config/db.js";
 
 export const getChatHistory = async (req: Request, res: Response): Promise<void> => {
   try {
+    const userId = req.user?.id;
     const history = await prisma.chatSession.findMany({
+      where: userId ? { userId } : {},
       include: {
         messages: {
           orderBy: { createdAt: 'asc' }
@@ -22,6 +24,7 @@ export const getChatHistory = async (req: Request, res: Response): Promise<void>
 export const getChatSession = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id;
     const session = await prisma.chatSession.findUnique({
       where: { id },
       include: {
@@ -34,6 +37,11 @@ export const getChatSession = async (req: Request, res: Response): Promise<void>
       res.status(404).json({ error: "Session not found" });
       return;
     }
+    // Verify ownership if user is authenticated
+    if (userId && session.userId && session.userId !== userId) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
     res.json(session);
   } catch (error: any) {
     console.error("Error fetching session:", error);
@@ -44,6 +52,7 @@ export const getChatSession = async (req: Request, res: Response): Promise<void>
 export const saveChatSession = async (req: Request, res: Response): Promise<void> => {
   try {
     const session = req.body;
+    const userId = req.user?.id || null;
     
     // UPSERT session
     const savedSession = await prisma.chatSession.upsert({
@@ -55,20 +64,18 @@ export const saveChatSession = async (req: Request, res: Response): Promise<void
       create: {
         id: session.id,
         title: session.title || "New Chat",
+        userId: userId,
         createdAt: session.createdAt ? new Date(session.createdAt) : new Date(),
       }
     });
 
     // To handle messages efficiently, we will delete existing and insert new (simple sync for now)
-    // Or just insert the ones that are missing. Since frontend sends the full session, we'll sync it.
     if (session.messages && Array.isArray(session.messages)) {
-      // For simplicity in sync, delete all messages for this session and recreate
-      // (In production, you'd only append new messages)
       await prisma.message.deleteMany({ where: { sessionId: session.id } });
       
       await prisma.message.createMany({
         data: session.messages.map((m: any) => ({
-          id: m.id.toString(),
+          id: m.id.toString().startsWith(session.id) ? m.id.toString() : `${session.id}-${m.id}`,
           sessionId: session.id,
           sender: m.sender,
           text: m.text,
@@ -88,6 +95,17 @@ export const saveChatSession = async (req: Request, res: Response): Promise<void
 export const deleteChatSession = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id;
+    
+    // Verify ownership before deleting
+    if (userId) {
+      const session = await prisma.chatSession.findUnique({ where: { id } });
+      if (session && session.userId && session.userId !== userId) {
+        res.status(403).json({ error: "Access denied" });
+        return;
+      }
+    }
+    
     await prisma.chatSession.delete({ where: { id } });
     res.json({ success: true });
   } catch (error: any) {

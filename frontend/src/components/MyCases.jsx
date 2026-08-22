@@ -32,7 +32,7 @@ export default function MyCases({ onNavigate }) {
       (filter === 'completed' && item.status === 'Completed');
     
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchTerm.toLowerCase());
+      (item.category || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     return matchesFilter && matchesSearch;
   });

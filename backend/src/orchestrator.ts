@@ -244,7 +244,7 @@ Category: {law_category}
 Key Facts: {key_facts}
 Case Laws & Statutes (from API): {api_results}
 Conversation History: {history}${contextNote}`
-    : `You are a compassionate and knowledgeable Indian Legal Advisor. Your goal is to explain the user's legal situation to them in simple, plain English that a layperson can understand. Avoid complex legalese. 
+    : `You are a compassionate and knowledgeable Indian Legal Advisor. Your goal is to explain the user's legal situation to them in simple, plain English that a layperson can understand. While avoiding complex legalese for the general explanation, you MUST clearly mention the specific legal terms, sections, and codes (e.g., IPC, BNS, CrPC) that apply to their situation so the user is empowered and knows their exact legal rights. 
     
 IMPORTANT FORMATTING RULES:
 1. Do NOT use markdown tables.
@@ -282,19 +282,22 @@ async function actionPlanNode(state: LegalAgentStateType): Promise<Partial<Legal
     : "";
 
   const systemPrompt = state.persona === 'lawyer'
-    ? `You are an elite legal strategist. Based on the provided legal advice, outline a highly professional legal strategy and procedural action plan (e.g., Drafting of SLP, Filing Anticipatory Bail under Sec 438 CrPC, Issuing Sec 138 NI Act notice). Keep it to 3 to 5 concrete bullet points. Maintain absolute legal precision.${contextNote}`
-    : `You are a legal strategist. Based on the provided legal advice, create a highly actionable, step-by-step plan for the user. Keep it to 3 to 5 concrete bullet points. Be direct and clear.
+    ? `You are an elite legal strategist. Based on the provided legal advice and the user's situation, outline a highly professional legal strategy and procedural action plan (e.g., Drafting of SLP, Filing Anticipatory Bail under Sec 438 CrPC, Issuing Sec 138 NI Act notice). Keep it to 3 to 5 concrete bullet points. Maintain absolute legal precision.${contextNote}`
+    : `You are a legal strategist. Based on the provided legal advice and the user's situation, create a highly actionable, step-by-step plan for the user. Keep it to 3 to 5 concrete bullet points. Be direct and clear.
 
 IMPORTANT DIRECTIVE: You MUST provide exact URLs to relevant Indian government complaint portals where applicable. 
-CRITICAL: You must format all URLs as clickable markdown links, for example: [National Cyber Crime Portal](https://cybercrime.gov.in). Do not just output raw text URLs. Do not give generic advice like "file a complaint online" without giving the exact, clickable portal link.${contextNote}`;
+CRITICAL: You must format all URLs as clickable markdown links, for example: [National Cyber Crime Portal](https://cybercrime.gov.in). Do not just output raw text URLs. Do not give generic advice like "file a complaint online" without giving the exact, clickable portal link.
+CRITICAL: You MUST always generate a concrete action plan. Never say you cannot create a plan. Use the user's situation and key facts below to generate actionable steps even if the legal advice is brief.${contextNote}`;
 
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", systemPrompt],
-    ["human", "Legal Advice:\n{legal_advice}\n\nWhat should I do next?"]
+    ["human", "User's Situation:\n{user_story}\n\nKey Facts:\n{key_facts}\n\nLegal Advice:\n{legal_advice}\n\nWhat should I do next?"]
   ]);
 
   const response = await callWithFallback(prompt, { 
-    legal_advice: state.legal_advice
+    legal_advice: state.legal_advice,
+    user_story: state.user_story,
+    key_facts: JSON.stringify(state.key_facts, null, 2)
   });
 
   return { action_plan: response.content.toString() };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Download, CheckCircle, Copy, Sparkles, Loader2, Scale } from 'lucide-react';
-import { saveCase, getCase } from '../utils/storage';
+import { saveCase, getCase, getAdviceAuthHeaders } from '../utils/storage';
 
 export default function BailDrafting({ onNavigate, caseId }) {
   const [step, setStep] = useState(1);
@@ -65,9 +65,10 @@ export default function BailDrafting({ onNavigate, caseId }) {
 
   const refineText = async (text) => {
     try {
+      const authHeaders = await getAdviceAuthHeaders();
       const response = await fetch("http://localhost:8000/api/refine-bail", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({ raw_text: text, form_data: formData })
       });
       const result = await response.json();

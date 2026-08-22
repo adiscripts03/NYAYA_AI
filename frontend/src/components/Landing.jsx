@@ -2,13 +2,43 @@ import React, { useEffect, useState } from 'react';
 import themisImg from '../assets/themis.jpg';
 import logoImg from '../assets/logo.svg'; 
 import { ArrowRight } from 'lucide-react';
+import LoadingScreen from './LoadingScreen';
+import AuthPage from './AuthPage';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Landing({ onNavigate }) {
   const [emerged, setEmerged] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [showLoading, setShowLoading] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     setTimeout(() => setEmerged(true), 100);
   }, []);
+
+  const handleEnterClick = () => {
+    if (user) {
+      // Already authenticated — go straight to loading screen
+      setShowLoading(true);
+    } else {
+      // Not authenticated — show auth page
+      setShowAuth(true);
+    }
+  };
+
+  const handleAuthComplete = () => {
+    // Auth done — show loading screen
+    setShowAuth(false);
+    setShowLoading(true);
+  };
+
+  if (showAuth) {
+    return <AuthPage onAuthComplete={handleAuthComplete} />;
+  }
+
+  if (showLoading) {
+    return <LoadingScreen onComplete={() => onNavigate('home')} />;
+  }
 
   return (
     <div className="landing-page minimalist">
@@ -36,7 +66,7 @@ export default function Landing({ onNavigate }) {
           </div>
 
           <div className={`landing-action ${emerged ? 'emerged' : ''}`}>
-            <button className="btn-landing-minimal" onClick={() => onNavigate('home')}>
+            <button className="btn-landing-minimal" onClick={handleEnterClick}>
               <span>Enter System</span>
               <ArrowRight size={20} className="btn-arrow-icon" />
             </button>

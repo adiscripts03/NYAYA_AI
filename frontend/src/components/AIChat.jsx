@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, FileText, Info, ArrowLeft, Plus, History, MessageSquare, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { saveCase, getCase, getChatHistory, saveChatSession, getChatSession, deleteChatSession } from '../utils/storage';
+import { saveCase, getCase, getChatHistory, saveChatSession, getChatSession, deleteChatSession, getAdviceAuthHeaders } from '../utils/storage';
 
 const INITIAL_MESSAGES = [
   {
@@ -116,9 +116,10 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
     setMessages((prev) => [...prev, { id: loadingId, sender: 'ai', text: "Analyzing your story and searching legal databases...", isLoading: true }]);
 
     try {
+      const authHeaders = await getAdviceAuthHeaders();
       const response = await fetch("http://localhost:8000/api/advice", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({ 
           story: currentInput,
           history: messages.map(m => ({ role: m.sender, content: m.text })),

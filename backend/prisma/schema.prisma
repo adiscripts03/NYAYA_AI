@@ -11,6 +11,7 @@ datasource db {
 model ChatSession {
   id        String    @id
   title     String
+  userId    String?
   messages  Message[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -32,4 +33,10 @@ model Case {
   description String?
   status      String   @default("Open")
   date        DateTime @default(now())
+  category    String?
+  statusColor String?
+  type        String?
+  snippet     String?
+  data        Json?
+  userId      String?
 }

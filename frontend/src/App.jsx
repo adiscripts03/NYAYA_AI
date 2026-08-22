@@ -9,6 +9,7 @@ import RTIDrafting from './components/RTIDrafting';
 import BailDrafting from './components/BailDrafting';
 import MyCases from './components/MyCases';
 import Resources from './components/Resources';
+import { useAuth } from './contexts/AuthContext';
 
 function App() {
   const navigate = useNavigate();
@@ -17,6 +18,14 @@ function App() {
   // Extract state if passed via navigation
   const navState = location.state || {};
   const currentView = location.pathname === '/' ? 'landing' : location.pathname.substring(1).split('/')[0] || 'landing';
+
+  const { user, loading, signOut } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !user && location.pathname !== '/') {
+      navigate('/', { replace: true });
+    }
+  }, [user, loading, location.pathname, navigate]);
 
   const [userPersona, setUserPersona] = useState(() => {
     return localStorage.getItem('nyaya_persona') || 'citizen';
@@ -108,8 +117,11 @@ function App() {
             </button>
             <button 
               className="side-nav-item back-btn"
-              onClick={() => navigate('/')}
-              title="Exit to Landing"
+              onClick={async () => {
+                await signOut();
+                navigate('/');
+              }}
+              title="Sign Out & Exit"
             >
               <LogOut size={22} />
             </button>

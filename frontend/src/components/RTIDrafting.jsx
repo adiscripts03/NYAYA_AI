@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Download, CheckCircle, Copy, ExternalLink, Sparkles, Loader2 } from 'lucide-react';
-import { saveCase, getCase } from '../utils/storage';
+import { saveCase, getCase, getAdviceAuthHeaders } from '../utils/storage';
 
 export default function RTIDrafting({ onNavigate, caseId }) {
   const [step, setStep] = useState(1);
@@ -61,9 +61,10 @@ export default function RTIDrafting({ onNavigate, caseId }) {
     if (!formData.information.trim()) return;
     setIsRefining(true);
     try {
+      const authHeaders = await getAdviceAuthHeaders();
       const response = await fetch("http://localhost:8000/api/refine-rti", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({ raw_text: formData.information })
       });
       const result = await response.json();
