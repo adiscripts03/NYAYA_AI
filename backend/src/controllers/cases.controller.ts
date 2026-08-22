@@ -21,7 +21,7 @@ export const getCase = async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const userId = req.user?.id;
     const caseRecord = await prisma.case.findUnique({
-      where: { id }
+      where: { id: id as string }
     });
     if (!caseRecord) {
       res.status(404).json({ error: "Case not found" });

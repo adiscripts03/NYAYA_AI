@@ -26,7 +26,7 @@ export const getChatSession = async (req: Request, res: Response): Promise<void>
     const { id } = req.params;
     const userId = req.user?.id;
     const session = await prisma.chatSession.findUnique({
-      where: { id },
+      where: { id: id as string },
       include: {
         messages: {
           orderBy: { createdAt: 'asc' }
@@ -99,14 +99,14 @@ export const deleteChatSession = async (req: Request, res: Response): Promise<vo
 
     // Verify ownership before deleting
     if (userId) {
-      const session = await prisma.chatSession.findUnique({ where: { id } });
+      const session = await prisma.chatSession.findUnique({ where: { id: id as string } });
       if (session && session.userId && session.userId !== userId) {
         res.status(403).json({ error: "Access denied" });
         return;
       }
     }
 
-    await prisma.chatSession.delete({ where: { id } });
+    await prisma.chatSession.delete({ where: { id: id as string } });
     res.json({ success: true });
   } catch (error: any) {
     console.error("Error deleting session:", error);
