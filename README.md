@@ -164,6 +164,24 @@ npm run dev
 
 ---
 
+### 3. Docker Setup (Alternative)
+
+If you prefer to run the entire stack (Frontend + Backend) using Docker, you can use the provided `docker-compose.yml`.
+
+Ensure Docker is installed and your `.env` files are created in both `/frontend` and `/backend` as described above.
+
+```bash
+# Build and start the containers in the background
+docker compose up --build -d
+
+# View logs
+docker compose logs -f
+```
+
+The frontend will be available at `http://localhost:5173` and the backend API at `http://localhost:8000`. Hot-reloading is enabled automatically via volume mounts!
+
+---
+
 ## 🛠 Tech Stack
 
 - **Frontend**: React, Vite, React Router, Lucide Icons, React-Markdown, Vanilla CSS (Glassmorphism & Custom Design System).

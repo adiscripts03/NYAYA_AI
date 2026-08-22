@@ -1591,7 +1591,7 @@ body.dark-theme .themis-bg-image {
   flex-direction: column;
   width: 100%;
   min-height: 100vh;
-  background-color: #000;
+  background-color: transparent;
   overflow-x: hidden;
   position: absolute;
   top: 0;
@@ -1604,13 +1604,8 @@ body.dark-theme .themis-bg-image {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  opacity: 0;
-  transition: opacity 2s ease-out 0.3s;
 }
 
-.auth-hero-fullscreen.emerged {
-  opacity: 1;
-}
 
 .auth-overlay-content {
   position: relative;
