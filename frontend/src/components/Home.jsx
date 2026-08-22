@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, ArrowRight, House, Briefcase, FileText, Landmark, ShieldAlert, Clock, AlertCircle, Book, Scale, Gavel, FileSignature } from 'lucide-react';
 import { getCases } from '../utils/storage';
+import VoiceMicButton from './VoiceMicButton';
 
 const CITIZEN_CATEGORIES = [
   { id: 'tenant', title: 'Tenant Rights', icon: House, greeting: "Hello! I specialize in Tenant Rights. Are you dealing with a security deposit issue, an eviction, or a lease dispute?" },
@@ -77,6 +78,10 @@ export default function Home({ onNavigate, userPersona, user }) {
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleSearchSubmit();
           }}
+        />
+        <VoiceMicButton 
+          className="mic-btn--sm"
+          onFinal={(text) => setSearchQuery((prev) => (prev.trim() ? prev + ' ' + text : text))}
         />
         <button onClick={handleSearchSubmit} className="search-submit-btn" aria-label="Search">
           <ArrowRight size={20} />

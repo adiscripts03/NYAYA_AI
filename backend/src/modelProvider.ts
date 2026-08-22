@@ -14,7 +14,7 @@ import { ChatOpenAI } from "@langchain/openai";
 // Model definitions
 const MODEL_CHAIN = [
   {
-    name: "llama-3.1-70b-versatile",
+    name: "llama-3.3-70b-versatile",
     provider: "groq",
   },
   {
