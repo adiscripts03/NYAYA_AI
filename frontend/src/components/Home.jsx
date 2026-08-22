@@ -18,7 +18,16 @@ const PRO_CATEGORIES = [
   { id: 'legalnotice', title: 'Legal Notice Drafting', icon: FileSignature, greeting: "Please provide the details for the legal notice, including the parties involved, the cause of action, and the specific demands." },
 ];
 
-export default function Home({ onNavigate, userPersona }) {
+export default function Home({ onNavigate, userPersona, user }) {
+  const getUserName = (user) => {
+    if (!user) return '';
+    if (user.user_metadata?.full_name) return user.user_metadata.full_name.split(' ')[0];
+    if (user.user_metadata?.name) return user.user_metadata.name.split(' ')[0];
+    if (user.email) return user.email.split('@')[0].charAt(0).toUpperCase() + user.email.split('@')[0].slice(1);
+    return '';
+  };
+  
+  const userName = getUserName(user);
   const [searchQuery, setSearchQuery] = useState('');
   const [recentCase, setRecentCase] = useState(null);
 
@@ -54,7 +63,7 @@ export default function Home({ onNavigate, userPersona }) {
     <div className="home-single-screen">
       {/* Compact Hero Section */}
       <section className="home-hero">
-        <h2>Hi, how can we help you today?</h2>
+        <h2>{userName ? `Hi ${userName}, how can we help you today?` : 'Hi, how can we help you today?'}</h2>
         <p>Explain your legal situation in plain words, and we'll guide you through your rights.</p>
       </section>
 

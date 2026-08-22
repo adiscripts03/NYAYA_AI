@@ -11,12 +11,29 @@ const INITIAL_MESSAGES = [
   }
 ];
 
-export default function AIChat({ onNavigate, initialQuery, autoSend, initialGreeting, caseId, clearQuery, userPersona }) {
+export default function AIChat({ onNavigate, initialQuery, autoSend, initialGreeting, caseId, clearQuery, userPersona, user }) {
+  const getUserName = (user) => {
+    if (!user) return '';
+    if (user.user_metadata?.full_name) return user.user_metadata.full_name.split(' ')[0];
+    if (user.user_metadata?.name) return user.user_metadata.name.split(' ')[0];
+    if (user.email) return user.email.split('@')[0].charAt(0).toUpperCase() + user.email.split('@')[0].slice(1);
+    return '';
+  };
+
+  const userName = getUserName(user);
+  const defaultGreeting = userName 
+    ? `Hey ${userName}, I'm Nyaya AI. How can I help you today?`
+    : "Hello. I'm Nyaya AI. I can help you understand your rights and figure out your next steps. What situation are you dealing with today?";
+
   const customInitialMessage = initialGreeting ? {
     id: 1,
     sender: 'ai',
     text: initialGreeting
-  } : INITIAL_MESSAGES[0];
+  } : {
+    id: 1,
+    sender: 'ai',
+    text: defaultGreeting
+  };
 
   const [messages, setMessages] = useState([customInitialMessage]);
   const [input, setInput] = useState('');
@@ -181,7 +198,11 @@ export default function AIChat({ onNavigate, initialQuery, autoSend, initialGree
 
   // Start a new chat session
   const handleNewChat = () => {
-    setMessages([INITIAL_MESSAGES[0]]);
+    setMessages([{
+      id: 1,
+      sender: 'ai',
+      text: defaultGreeting
+    }]);
     setInput('');
     setCurrentCaseId(null);
     setCurrentSessionId(null);

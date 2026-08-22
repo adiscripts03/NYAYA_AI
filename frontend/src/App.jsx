@@ -132,7 +132,7 @@ function App() {
       <main className={`main-content ${currentView === 'home' ? 'single-screen' : ''}`} style={currentView === 'landing' ? { padding: 0 } : {}}>
         <Routes>
           <Route path="/" element={<Landing onNavigate={handleEnterSystem} />} />
-          <Route path="/home" element={<Home onNavigate={handleNavigate} userPersona={userPersona} />} />
+          <Route path="/home" element={<Home onNavigate={handleNavigate} userPersona={userPersona} user={user} />} />
           <Route path="/chat" element={
             <AIChat 
               onNavigate={handleNavigate} 
@@ -141,6 +141,7 @@ function App() {
               initialGreeting={navState.greeting || ''}
               caseId={navState.caseId || null}
               userPersona={userPersona}
+              user={user}
               clearQuery={() => navigate('/chat', { replace: true, state: {} })} 
             />
           } />

@@ -33,7 +33,7 @@ const GUIDES = [
     title: 'Know Your Rights: Tenant & Landlord Law',
     summary: 'Key provisions under Model Tenancy Act & State Rent Control laws.',
     tag: 'Housing',
-    link: 'https://mohua.gov.in/upload/uploadfiles/files/Model-Tenancy-Act-2021.pdf'
+    link: 'https://prsindia.org/billtrack/the-model-tenancy-act-2021'
   },
   {
     title: 'Consumer Protection Act 2019 Guide',
@@ -56,9 +56,18 @@ const GUIDES = [
 ];
 
 const HELPLINES = [
+  { name: 'National Emergency Number', number: '112', desc: 'Single emergency number for Police, Fire & Medical' },
+  { name: 'Police Control Room', number: '100', desc: 'Immediate police assistance' },
+  { name: 'National Cyber Crime Helpline', number: '1930', desc: 'Report cyber fraud & financial crimes' },
+  { name: 'Women Helpline (Domestic Abuse)', number: '1091', desc: 'Emergency support for women in distress' },
+  { name: 'Childline India (POCSO / Rights)', number: '1098', desc: 'Assistance for children in need of care' },
   { name: 'National Consumer Helpline (NCH)', number: '1915', desc: 'Free consumer grievance portal' },
-  { name: 'RTI Information & Assistance', number: '1800-11-2355', desc: 'Central CIC Information desk' },
-  { name: 'National Legal Services Authority (NALSA)', number: '15100', desc: 'Free legal aid helpline' }
+  { name: 'National Legal Services Authority (NALSA)', number: '15100', desc: 'Free legal aid helpline' },
+  { name: 'ElderLine (Senior Citizens)', number: '14567', desc: 'Legal and emotional support for the elderly' },
+  { name: 'Kiran Mental Health Helpline', number: '1800-599-0019', desc: '24/7 toll-free mental health support' },
+  { name: 'Anti-Ragging Helpline', number: '1800-180-5522', desc: 'UGC helpline against ragging in institutions' },
+  { name: 'Divyangjan (Disability) Helpline', number: '1800-572-8980', desc: 'Support for persons with disabilities' },
+  { name: 'RTI Information & Assistance', number: '1800-11-2355', desc: 'Central CIC Information desk' }
 ];
 
 export default function Resources({ onNavigate }) {

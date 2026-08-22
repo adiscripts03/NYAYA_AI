@@ -14,11 +14,11 @@ import { ChatOpenAI } from "@langchain/openai";
 // Model definitions
 const MODEL_CHAIN = [
   {
-    name: "openai/gpt-oss-20b",
+    name: "llama-3.1-70b-versatile",
     provider: "groq",
   },
   {
-    name: "llama-3.3-70b-versatile",
+    name: "llama3-70b-8192",
     provider: "groq",
   },
   {

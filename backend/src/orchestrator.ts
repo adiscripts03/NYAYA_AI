@@ -192,7 +192,7 @@ async function kanoonAPINode(state: LegalAgentStateType): Promise<Partial<LegalA
     const url = `https://api.indiankanoon.org/search/?formInput=${encodedQuery}`;
     
     const response = await fetch(url, {
-      method: "GET",
+      method: "POST",
       headers: {
         "Authorization": `Token ${token}`,
         "Content-Type": "application/json"
@@ -312,8 +312,8 @@ async function rtiAddonNode(state: LegalAgentStateType): Promise<Partial<LegalAg
   
   const rtiSchema = z.object({
     needs_rti: z.boolean().describe("True if the user's issue is against a government/public body and eligible for an RTI application. False otherwise."),
-    department: z.string().optional().describe("The name of the government department or public body (if eligible)."),
-    rti_draft: z.string().optional().describe("The drafted RTI application text containing placeholders for user details (if eligible).")
+    department: z.string().nullable().optional().describe("The name of the government department or public body (if eligible)."),
+    rti_draft: z.string().nullable().optional().describe("The drafted RTI application text containing placeholders for user details (if eligible).")
   });
 
   const systemPrompt = `You are an RTI Drafting Add-on that runs AFTER the Rights Navigator.
