@@ -2081,22 +2081,21 @@ body.dark-theme .themis-bg-image {
 
 
 
- / *   F o r m   F i l l e r   &   B o o k m a r k l e t   * / 
- . f o r m - f i l l e r - l a y o u t   { 
-     a n i m a t i o n :   f a d e I n   0 . 3 s   e a s e ; 
- } 
- 
- . b o o k m a r k l e t - b t n   { 
-     t r a n s i t i o n :   t r a n s f o r m   0 . 2 s ,   b o x - s h a d o w   0 . 2 s ; 
- } 
- 
- . b o o k m a r k l e t - b t n : h o v e r   { 
-     t r a n s f o r m :   t r a n s l a t e Y ( - 2 p x ) ; 
-     b o x - s h a d o w :   0   6 p x   2 0 p x   r g b a ( 9 9 ,   1 0 2 ,   2 4 1 ,   0 . 6 )   ! i m p o r t a n t ; 
- } 
- 
- . b o o k m a r k l e t - b t n : a c t i v e   { 
-     t r a n s f o r m :   t r a n s l a t e Y ( 0 ) ; 
- } 
-  
- 
+
+/* Form Filler & Bookmarklet */
+.form-filler-layout {
+    animation: fadeIn 0.3s ease;
+}
+
+.bookmarklet-btn {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.bookmarklet-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6) !important;
+}
+
+.bookmarklet-btn:active {
+    transform: translateY(0);
+}
