@@ -1,5 +1,7 @@
 # ⚖️ Nyaya AI
 
+Yt video Link -> https://youtu.be/Foa-N6lcDfI?si=yE4bPHtIYduF5AVA
+
 Nyaya AI is an intelligent, agentic legal assistant designed to help Indian citizens and legal professionals navigate their legal rights, draft official documents, and get actionable legal advice. Powered by **LangGraph** and a highly secure multi-tenant architecture, Nyaya AI breaks down complex situations into plain, easy-to-understand guidance or highly technical legal analysis based on your chosen persona.
 
 ---
